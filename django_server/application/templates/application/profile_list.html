@@ -1,0 +1,34 @@
+{% extends "application/base.html" %}
+{% block content %}
+    {% for user in users %}
+        <article class="media content-section">
+          <div class="media-body">
+            <h2><a class="article-title">{{ user.username }}</a></h2>
+            <p class="article-content">Lines written all the time: {{ user.profile.stats_for_all_time }}</p>
+            <p class="article-content">Lines written in the last year: {{ user.profile.stats_for_last_year }}</p>
+            <p class="article-content">Lines written in the last month: {{ user.profile.stats_for_last_month }}</p>
+            <p class="article-content">Lines written in the last week: {{ user.profile.stats_for_last_week }}</p>
+            <p class="article-content">Lines written in the last day: {{ user.profile.stats_for_last_day }}</p>
+          </div>
+        </article>
+    {% endfor %}
+    {% if is_paginated %}
+
+        {% if page_obj.has_previous %}
+            <a class="btn btn-outline-info mb-4" href="?page=1">First</a>
+            <a class="btn btn-outline-info mb-4" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+        {% endif %}
+
+        {% for num in page_obj.paginator.page_range %}
+            {% if page_obj.number == num %}
+                <a class="btn btn-info mb-4" href="?page={{ num }}">{{ num }}</a>
+            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                <a class="btn btn-outline-info mb-4" href="?page={{ num }}">{{ num }}</a>
+            {% endif %}
+        {% endfor %}
+        {% if page_obj.has_next %}
+            <a class="btn btn-outline-info mb-4" href="?page={{ page_obj.next_page_number }}">Next</a>
+            <a class="btn btn-outline-info mb-4" href="?page={{ page_obj.paginator.num_pages }}">Last</a>
+        {% endif %}
+    {% endif %}
+{% endblock content %}
