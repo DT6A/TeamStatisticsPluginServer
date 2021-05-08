@@ -17,14 +17,22 @@ from .forms import *
 def register(request):
     if request.method == 'POST':
         form = UserRegisterForm(request.POST)
-        if form.is_valid():
-            form.save()
+        profile_form = ProfileForm(request.POST)
+
+        if form.is_valid() and profile_form.is_valid():
+            user = form.save()
+            profile = profile_form.save(commit=False)
+
+            profile.user = user
+            profile.save()
+
             username = form.cleaned_data.get('username')
             messages.success(request, f'Your account has been created')
             return redirect('login')
     else:
         form = UserRegisterForm()
-    return render(request, 'users/register.html', {'form': form})
+        profile_form = ProfileForm()
+    return render(request, 'users/register.html', {'form': form, 'profile_form': profile_form})
 
 
 @csrf_exempt
@@ -38,6 +46,6 @@ def receive_data(request):
     stat.user = User.objects.get(pk=data['user_id'])
     stat.time_from = date
     stat.time_to = date
-    stat.lines_written = data['lines']
+    stat.metrics = data
     stat.save()
     return HttpResponse(str(request.body))

@@ -1,0 +1,21 @@
+{% extends "application/base.html" %}
+{% block content %}
+
+    <article class="media content-section">
+      <div class="media-body">
+        {% if object.first_name or object.last_name %}
+          <h2 class="article-title">{{ object.first_name }} {{ object.last_name }}</h2>
+        {% else %}
+          <h2 class="article-title">{{ object.username }}</h2>
+        {% endif %}
+        <small class="text-muted">Joined {{ object.date_joined }}</small>
+        <p class="article-content">{{ object.content }}</p>
+        <p class="article-content">Lines written all the time: {{ object.profile.stats_for_all_time }}</p>
+        <p class="article-content">Lines written in the last year: {{ object.profile.stats_for_last_year }}</p>
+        <p class="article-content">Lines written in the last month: {{ object.profile.stats_for_last_month }}</p>
+        <p class="article-content">Lines written in the last week: {{ object.profile.stats_for_last_week }}</p>
+        <p class="article-content">Lines written in the last day: {{ object.profile.stats_for_last_day }}</p>
+      </div>
+    </article>
+
+{% endblock content %}
