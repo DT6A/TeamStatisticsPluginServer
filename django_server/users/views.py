@@ -1,17 +1,13 @@
-import datetime
 import json
-from datetime import timedelta
-from random import randrange
 
+import dateutil.parser
 from django.contrib import messages
-from django.contrib.auth.models import User
-from django.shortcuts import render, redirect
-from django.utils import timezone
+from django.http import HttpResponseNotFound, HttpResponse, JsonResponse
+from django.shortcuts import render, redirect, get_object_or_404
 from django.views.decorators.csrf import csrf_exempt
-from django.http import HttpResponseNotFound, HttpResponse
 
-from .models import UserStat
 from .forms import *
+from .models import *
 
 
 def register(request):
@@ -23,8 +19,10 @@ def register(request):
             user = form.save()
             profile = profile_form.save(commit=False)
 
-            profile.user = user
-            profile.save()
+            user.profile.employer_key = profile.employer_key
+            user.profile.save()
+            #profile.user = user
+            #profile.save()
 
             username = form.cleaned_data.get('username')
             messages.success(request, f'Your account has been created')
@@ -39,13 +37,32 @@ def register(request):
 def receive_data(request):
     if request.method == 'GET':
         return HttpResponseNotFound()
-    #data = json.loads(request.data)
+
     data = json.loads(request.body.decode())
-    date = timezone.now()
+    #date = timezone.now()
     stat = UserStat()
-    stat.user = User.objects.get(pk=data['user_id'])
-    stat.time_from = date
-    stat.time_to = date
+    user = get_object_or_404(UserUniqueToken, token=data['token']).user
+    stat.user = user
+    stat.time_from = dateutil.parser.parse(data['time_from'])
+    stat.time_to = dateutil.parser.parse(data['time_to'])
+
+    del data['time_to']
+    del data['time_from']
+    del data['token']
+
     stat.metrics = data
     stat.save()
-    return HttpResponse(str(request.body))
+    return HttpResponse("Ok")
+
+
+@csrf_exempt
+def plugin_login(request):
+    if request.method == 'GET':
+        return HttpResponseNotFound()
+
+    data = json.loads(request.body.decode())
+    user = get_object_or_404(User, username=data['username'])
+    if not user.check_password(data['password']):
+        return HttpResponse('Invalid password', status=401)
+
+    return JsonResponse({"token": user.useruniquetoken.token})

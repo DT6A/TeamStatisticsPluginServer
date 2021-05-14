@@ -20,6 +20,11 @@ class UserStat(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
 
 
+class UserUniqueToken(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    token = models.CharField(max_length=100, default=get_random_secret_key)
+
+
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     ref_key = models.CharField(max_length=100, default=get_random_secret_key)

@@ -4,3 +4,4 @@ mysqlclient==2.0.3
 Pillow==8.1.2
 requests==2.25.1
 sqlparse==0.4.1
+python-dateutil==2.8.1
