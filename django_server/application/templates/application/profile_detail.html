@@ -4,9 +4,12 @@
     <article class="media content-section">
       <div class="media-body">
         {% if object.first_name or object.last_name %}
-          <h2 class="article-title">{{ object.first_name }} {{ object.last_name }}</h2>
+          <h2 class="article-title">{{ object.first_name }} {{ object.last_name }} </h2>
         {% else %}
           <h2 class="article-title">{{ object.username }}</h2>
+        {% endif %}
+        {% if overseer %}
+          <p class="article-title"> Tracked by: <a href="{% url 'user-detail' overseer.id %}"> {{ overseer.username }}</a></p>
         {% endif %}
         <small class="text-muted">Joined {{ object.date_joined }}</small>
         <p class="article-content">{{ object.content }}</p>
