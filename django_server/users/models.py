@@ -27,8 +27,6 @@ class UserUniqueToken(models.Model):
 
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
-    ref_key = models.CharField(max_length=100, default=get_random_secret_key)
-    employer_key = models.CharField(max_length=100, default="", null=True, blank=True)
     #image = models.ImageField(default='default.jpg', upload_to='profile_pics')
 
     def __str__(self):
@@ -62,3 +60,13 @@ class Profile(models.Model):
     @property
     def stats_for_last_day(self):
         return self.lines_written_within_delta(timedelta(days=1))
+
+
+class Team(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    users = models.ManyToManyField(User, related_name='team_user', blank=True)
+    admins = models.ManyToManyField(User, related_name='team_admin')
+    invite_key = models.CharField(max_length=100, default=get_random_secret_key)
+
+    def __str__(self):
+        return self.name

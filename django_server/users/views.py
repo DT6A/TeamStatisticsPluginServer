@@ -14,13 +14,13 @@ from .models import *
 def register(request):
     if request.method == 'POST':
         form = UserRegisterForm(request.POST)
-        profile_form = ProfileForm(request.POST)
+        #profile_form = ProfileForm(request.POST)
 
-        if form.is_valid() and profile_form.is_valid():
+        if form.is_valid():# and profile_form.is_valid():
             user = form.save()
-            profile = profile_form.save(commit=False)
+            #profile = profile_form.save(commit=False)
 
-            user.profile.employer_key = profile.employer_key
+            #user.profile.employer_key = profile.employer_key
             user.profile.save()
             #profile.user = user
             #profile.save()
@@ -30,8 +30,10 @@ def register(request):
             return redirect('login')
     else:
         form = UserRegisterForm()
-        profile_form = ProfileForm()
-    return render(request, 'users/register.html', {'form': form, 'profile_form': profile_form})
+        #profile_form = ProfileForm()
+    return render(request, 'users/register.html', {'form': form,
+                                                   #'profile_form': profile_form
+                                                   })
 
 
 @csrf_exempt
@@ -73,19 +75,19 @@ def plugin_login(request):
 def profile(request):
     if request.method == 'POST':
         u_form = UserUpdateForm(request.POST, instance=request.user)
-        p_form = ProfileForm(request.POST, request.FILES, instance=request.user.profile)
-        if u_form.is_valid() and p_form.is_valid():
+        #p_form = ProfileForm(request.POST, request.FILES, instance=request.user.profile)
+        if u_form.is_valid():# and p_form.is_valid():
             u_form.save()
-            p_form.save()
+            #p_form.save()
             messages.success(request, f'Your account has been updated')
             return redirect('profile')
     else:
         u_form = UserUpdateForm(instance=request.user)
-        p_form = ProfileForm(instance=request.user.profile)
+        #p_form = ProfileForm(instance=request.user.profile)
 
     context = {
         'u_form': u_form,
-        'p_form': p_form
+        #'p_form': p_form
     }
 
     return render(request, 'users/profile.html', context)

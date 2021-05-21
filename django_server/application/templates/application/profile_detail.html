@@ -8,9 +8,7 @@
         {% else %}
           <h2 class="article-title">{{ object.username }}</h2>
         {% endif %}
-        {% if overseer %}
-          <p class="article-title"> Tracked by: <a href="{% url 'user-detail' overseer.id %}"> {{ overseer.username }}</a></p>
-        {% endif %}
+
         <small class="text-muted">Joined {{ object.date_joined }}</small>
         <p class="article-content">{{ object.content }}</p>
         <p class="article-content">Lines written all the time: {{ object.profile.stats_for_all_time }}</p>

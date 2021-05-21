@@ -1,21 +1,17 @@
 {% extends "application/base.html" %}
 {% block content %}
+
     <div class="container">
         <div class="row">
             <div class="col-lg-12">
               <div class="articles card">
                 <div class="card-header d-flex align-items-center">
-                  <h2 class="h3">Users tracked by you   </h2>
+                  <h2 class="h3">Your teams   </h2>
                 </div>
                 <div class="card-body no-padding">
-                {% for user in users %}
+                {% for team in teams %}
                   <div class="item d-flex align-items-center">
-                    <div class="text"><a href="{% url 'user-detail' user.id %}">
-                        {% if user.first_name or user.last_name %}
-                            {{ user.first_name }} {{ user.last_name }} </a><small> Lines of code written: {{ user.profile.stats_for_all_time }}</small>
-                        {% else %}
-                            {{ user.username }}</a><small> Lines of code written: {{ user.profile.stats_for_all_time }}</small>
-                        {% endif %}
+                      <div class="text"><a href="{% url 'team-detail' team.id %}">{{team.name}}</a>
                     </div>
                   </div>
                 {% endfor %}
@@ -23,6 +19,10 @@
               </div>
             </div>
         </div>
+    </div>
+    <div class="container">
+        <input class="btn btn-success" type="button" value="Create new team" onclick="location.href='{% url 'app-create-team' %}'" />
+        <input class="btn btn-success" type="button" value="Join team" onclick="location.href='{% url 'team-join' %}'" />
     </div>
     {% if is_paginated %}
         {% if page_obj.has_previous %}

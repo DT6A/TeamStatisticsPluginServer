@@ -1,0 +1,45 @@
+{% extends "application/base.html" %}
+{% block content %}
+
+    <article class="media content-section">
+      <div class="media-body">
+        <h2 class="article-title">{{ object.name }} </h2>
+        {% if is_admin %}
+            Team key for invitation: {{ object.invite_key }}
+        {% endif %}
+        <h3>Admins</h3>
+        {% for user in object.admins.all %}
+          <div class="item d-flex align-items-center">
+            <div class="text"><a href="{% url 'user-detail' user.id %}">
+                {% if user.first_name or user.last_name %}
+                    {{ user.first_name }} {{ user.last_name }} </a><small> Lines of code written: {{ user.profile.stats_for_all_time }}</small>
+                {% else %}
+                    {{ user.username }}</a><small> Lines of code written: {{ user.profile.stats_for_all_time }}</small>
+                {% endif %}
+            </div>
+          </div>
+        {% endfor %}
+        <h3>Users</h3>
+        {% for user in object.users.all %}
+          <div class="item d-flex align-items-center">
+            <div class="text"><a href="{% url 'user-detail' user.id %}">
+                {% if user.first_name or user.last_name %}
+                    {{ user.first_name }} {{ user.last_name }} </a><small> Lines of code written: {{ user.profile.stats_for_all_time }}</small>
+                {% else %}
+                    {{ user.username }}</a><small> Lines of code written: {{ user.profile.stats_for_all_time }}</small>
+                {% endif %}
+                {% if is_admin %}
+                    <form method="POST">
+                        {% csrf_token %}
+                        <input type="hidden" name="target_user_id" value="{{ user.id }}" />
+                        <input type="hidden" name="target_team_id" value="{{ object.id }}" />
+                        <button class="btn btn-outline-info" type="submit">Make admin</button>
+                    </form>
+                {% endif %}
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </article>
+
+{% endblock content %}
