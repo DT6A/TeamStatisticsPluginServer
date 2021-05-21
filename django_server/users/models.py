@@ -1,5 +1,7 @@
+from abc import abstractmethod, ABC
 from datetime import datetime, timedelta
 
+from cattr.generation import override
 from django.contrib.postgres.fields.jsonb import KeyTextTransform
 from django.core.management.utils import get_random_secret_key
 from django.db import models
@@ -70,3 +72,33 @@ class Team(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class Metric(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+
+    @abstractmethod
+    def extract_info_from_user(self, user):
+        pass
+
+
+class CharCountingMetric(Metric):
+    char = models.CharField(max_length=1, unique=True, blank=False)
+
+    @override
+    def extract_info_from_user(self, user):
+        pass
+
+    def __str__(self):
+        return self.char
+
+
+class SubstringCountingMetric(Metric):
+    substring = models.CharField(max_length=100, unique=True, blank=False)
+
+    @override
+    def extract_info_from_user(self, user):
+        pass
+
+    def __str__(self):
+        return self.substring

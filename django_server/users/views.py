@@ -91,3 +91,11 @@ def profile(request):
     }
 
     return render(request, 'users/profile.html', context)
+
+
+@csrf_exempt
+def all_metrics(request):
+    return JsonResponse({
+        "CHAR_COUNTING": [str(m) for m in CharCountingMetric.objects.all()],
+        "SUBSTRING_COUNTING": [str(m) for m in SubstringCountingMetric.objects.all()]
+    })
