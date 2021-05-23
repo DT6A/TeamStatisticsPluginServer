@@ -27,6 +27,21 @@ class UserUniqueToken(models.Model):
     token = models.CharField(max_length=100, default=get_random_secret_key)
 
 
+def extract_metric(filtered, metric):
+    return filtered.annotate(metric_value=Cast(KeyTextTransform(metric, 'metrics'), models.IntegerField())).aggregate(
+        Sum('metric_value'))['metric_value__sum']
+
+
+def aggregate_metric_all_time(user, metric):
+    s = extract_metric(UserStat.objects.filter(user=user), metric)
+    return s if s else 0
+
+
+def aggregate_metric_within_delta(user, metric, delta):
+    s = extract_metric(UserStat.objects.filter(user=user, time_from__gte=datetime.now() - delta), metric)
+    return s if s else 0
+
+
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     #image = models.ImageField(default='default.jpg', upload_to='profile_pics')
@@ -78,7 +93,7 @@ class Metric(models.Model):
     name = models.CharField(max_length=100, unique=True)
 
     @abstractmethod
-    def extract_info_from_user(self, user):
+    def extract_info_from_user_and_render_aggregative(self, user, time):
         pass
 
 
@@ -86,7 +101,7 @@ class CharCountingMetric(Metric):
     char = models.CharField(max_length=1, unique=True, blank=False)
 
     @override
-    def extract_info_from_user(self, user):
+    def extract_info_from_user_and_render_aggregative(self, user, time):
         pass
 
     def __str__(self):
@@ -97,7 +112,7 @@ class SubstringCountingMetric(Metric):
     substring = models.CharField(max_length=100, unique=True, blank=False)
 
     @override
-    def extract_info_from_user(self, user):
+    def extract_info_from_user_and_render_aggregative(self, user, time):
         pass
 
     def __str__(self):
