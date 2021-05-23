@@ -16,6 +16,7 @@ from .forms import TeamForm, TeamJoinForm
 Profile = apps.get_model('users', 'Profile')
 Team = apps.get_model('users', 'Team')
 UserStat = apps.get_model('users', 'UserStat')
+Metric = apps.get_model('users', 'Metric')
 
 
 class ProfileListView(ListView):
@@ -63,10 +64,9 @@ class TeamDetailView(DetailView):
     context_object_name = 'object'
     template_name = 'application/team_detail.html'
 
-    METRICS_DICT = {
-            'lines': 'Lines of code',
-            'SUBSTRING_COUNTING__coq': 'coq substrings',
-        }
+    METRICS_DICT = dict({'lines': 'Lines of code'}, **{
+        name: str(Metric.objects.get(name=name)) for name in Metric.objects.all().values_list('name', flat=True)
+    })
 
     PERIODS_DICT = {
             'all': 'All time',
@@ -77,6 +77,10 @@ class TeamDetailView(DetailView):
         }
 
     def add_metrics_options(self, context):
+        print(self.METRICS_DICT)
+        print({
+        name: Metric.objects.get(name=name) for name in Metric.objects.all().values_list('name', flat=True)
+    })
         context['metrics'] = self.METRICS_DICT
         context['periods'] = self.PERIODS_DICT
         return context

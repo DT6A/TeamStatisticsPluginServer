@@ -91,11 +91,15 @@ class Team(models.Model):
 
 class Metric(models.Model):
     name = models.CharField(max_length=100, unique=True)
-
     @abstractmethod
     def extract_info_from_user_and_render_aggregative(self, user, time):
         pass
 
+    def __str__(self):
+        if hasattr(self, 'charcountingmetric'):
+            return str(self.charcountingmetric)
+        elif hasattr(self, 'substringcountingmetric'):
+            return str(self.substringcountingmetric)
 
 class CharCountingMetric(Metric):
     char = models.CharField(max_length=1, unique=True, blank=False)
@@ -105,7 +109,7 @@ class CharCountingMetric(Metric):
         pass
 
     def __str__(self):
-        return self.char
+        return 'Number of ' + str(self.char) + ' characters'
 
 
 class SubstringCountingMetric(Metric):
@@ -116,4 +120,4 @@ class SubstringCountingMetric(Metric):
         pass
 
     def __str__(self):
-        return self.substring
+        return 'Number of ' + str(self.substring) + ' substrings'
