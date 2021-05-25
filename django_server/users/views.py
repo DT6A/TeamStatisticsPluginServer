@@ -96,6 +96,6 @@ def profile(request):
 @csrf_exempt
 def all_metrics(request):
     return JsonResponse({
-        "CHAR_COUNTING": [str(m) for m in CharCountingMetric.objects.all()],
-        "SUBSTRING_COUNTING": [str(m) for m in SubstringCountingMetric.objects.all()]
+        "CHAR_COUNTING": [m.char for m in CharCountingMetric.objects.all()],
+        "SUBSTRING_COUNTING": [m.substring for m in SubstringCountingMetric.objects.all()]
     })
