@@ -21,8 +21,8 @@
         </div>
     </div>
     <div class="container">
-        <input class="btn btn-success" type="button" value="Create new team" onclick="location.href='{% url 'app-create-team' %}'" />
-        <input class="btn btn-success" type="button" value="Join team" onclick="location.href='{% url 'team-join' %}'" />
+        <input class="btn btn-outline-success" type="button" value="Create new team" onclick="location.href='{% url 'app-create-team' %}'" />
+        <input class="btn btn-outline-success" type="button" value="Join team" onclick="location.href='{% url 'team-join' %}'" />
     </div>
     {% if is_paginated %}
         {% if page_obj.has_previous %}

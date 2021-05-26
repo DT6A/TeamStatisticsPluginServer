@@ -8,7 +8,8 @@ from django.contrib.postgres.fields.jsonb import KeyTextTransform
 from django.db import models
 from django.db.models import Sum
 from django.db.models.functions import Cast
-from django.shortcuts import redirect, render
+from django.http import Http404, HttpResponseNotFound
+from django.shortcuts import redirect, render, HttpResponse
 from django.views.generic import ListView, DetailView
 
 from .forms import TeamForm, TeamJoinForm
@@ -41,7 +42,7 @@ class TeamListView(ListView):
 
     def get_queryset(self):
         user = self.request.user
-        return user.team_admin.all() | user.team_user.all()
+        return (user.team_admin.all() | user.team_user.all()).distinct()
 
 
 def extract_metric(filtered, metric):
@@ -59,16 +60,19 @@ def aggregate_metric_within_delta(user, metric, delta):
     return s if s else 0
 
 
-class TeamDetailView(DetailView):
-    model = Team
-    context_object_name = 'object'
-    template_name = 'application/team_detail.html'
-
-    METRICS_DICT = dict({'lines': 'Lines of code'}, **{
+def get_all_metrics_dict():
+    return dict({'lines': 'Lines of code'}, **{
         name: str(Metric.objects.get(name=name)) for name in Metric.objects.all().values_list('name', flat=True)
     })
 
-    PERIODS_DICT = {
+
+def get_team_metrics(team):
+    return dict({'lines': 'Lines of code'}, **{
+        name: str(team.tracked_metrics.get(name=name)) for name in team.tracked_metrics.all().values_list('name', flat=True)
+    })
+
+
+PERIODS_DICT = {
             'all': 'All time',
             "365": 'Year',
             "30": 'Month',
@@ -76,13 +80,17 @@ class TeamDetailView(DetailView):
             "1": 'Day',
         }
 
-    def add_metrics_options(self, context):
-        print(self.METRICS_DICT)
-        print({
-        name: Metric.objects.get(name=name) for name in Metric.objects.all().values_list('name', flat=True)
-    })
-        context['metrics'] = self.METRICS_DICT
-        context['periods'] = self.PERIODS_DICT
+
+class TeamDetailView(DetailView):
+    model = Team
+    context_object_name = 'object'
+    template_name = 'application/team_detail.html'
+
+
+    @staticmethod
+    def add_metrics_options(team, context):
+        context['metrics'] = get_team_metrics(team)
+        context['periods'] = PERIODS_DICT
         return context
 
     def add_is_admin(self, team, context):
@@ -103,12 +111,12 @@ class TeamDetailView(DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context = self.add_metrics_options(context)
+        context = self.add_metrics_options(self.object, context)
         context = self.add_is_admin(self.object, context)
         context = self.add_users_sats(self.object, lambda u: u.profile.stats_for_all_time, context)
         context['default_period'] = 'all'
         context['default_metric'] = 'lines'
-        context['default_metric_text'] = self.METRICS_DICT['lines']
+        context['default_metric_text'] = get_all_metrics_dict()['lines']
 
         return context
 
@@ -118,7 +126,7 @@ class TeamDetailView(DetailView):
         interval = request.POST.get('time', 'all')
 
         context = {}
-        context = self.add_metrics_options(context)
+        context = self.add_metrics_options(team, context)
         context = self.add_is_admin(team, context)
 
         if interval == 'all':
@@ -130,12 +138,47 @@ class TeamDetailView(DetailView):
         context['object'] = team
         context['default_period'] = request.POST.get('time', 'all')
         context['default_metric'] = request.POST.get('metrics', 'lines')
-        context['default_metric_text'] = self.METRICS_DICT[context['default_metric']]
-        if request.POST['query'] == 'admin':
-            user = User.objects.get(pk=request.POST['target_user_id'])
-            team.users.remove(user)
-            team.admins.add(user)
+        context['default_metric_text'] = get_team_metrics(team)[context['default_metric']]
         return render(request, 'application/team_detail.html', context)
+
+    @staticmethod
+    @login_required
+    def administrate_team(request, pk):
+        team = Team.objects.get(pk=pk)
+        user = request.user
+        if not team.admins.all().filter(pk=user.id).exists():
+            return HttpResponseNotFound("You are not an administrator of the team")
+
+        context = {}
+        context['object'] = team
+
+        if request.method == 'POST':
+            query = request.POST.get('query', None)
+
+            if query == 'admin':
+                user = User.objects.get(pk=request.POST['target_user_id'])
+                team.users.remove(user)
+                team.admins.add(user)
+            elif query == 'remove':
+                user = User.objects.get(pk=request.POST['target_user_id'])
+                team.users.remove(user)
+            elif query == 'add_metric' and request.POST.get('metrics_add', None):
+                metric = Metric.objects.get(name=request.POST['metrics_add'])
+                team.tracked_metrics.add(metric)
+                team.save()
+            elif query == 'rm_metric' and request.POST.get('metrics_rm', None):
+                metric = Metric.objects.get(name=request.POST['metrics_rm'])
+                team.tracked_metrics.remove(metric)
+                team.save()
+
+        context = TeamDetailView.add_metrics_options(team, context)
+        del context['metrics']['lines']
+        untracked_qs = Metric.objects.exclude(name__in=list(context['metrics'].keys()))
+        context['untracked'] = {
+            name: str(untracked_qs.get(name=name)) for name in untracked_qs.values_list('name', flat=True)
+        }
+
+        return render(request, 'application/team_administration.html', context)
 
 
 @login_required

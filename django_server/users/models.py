@@ -1,18 +1,14 @@
-from abc import abstractmethod, ABC
+from abc import abstractmethod
 from datetime import datetime, timedelta
 
 from cattr.generation import override
+from django.contrib.auth.models import User
 from django.contrib.postgres.fields.jsonb import KeyTextTransform
 from django.core.management.utils import get_random_secret_key
 from django.db import models
-from django.contrib.auth.models import User
-from django.db.models import Sum, Model
+from django.db.models import Sum
 from django.db.models.functions import Cast
 from django.utils import timezone
-
-from django.db.models.expressions import RawSQL, Func, F
-
-from PIL import Image
 
 
 class UserStat(models.Model):
@@ -79,16 +75,6 @@ class Profile(models.Model):
         return self.lines_written_within_delta(timedelta(days=1))
 
 
-class Team(models.Model):
-    name = models.CharField(max_length=100, unique=True)
-    users = models.ManyToManyField(User, related_name='team_user', blank=True)
-    admins = models.ManyToManyField(User, related_name='team_admin')
-    invite_key = models.CharField(max_length=100, default=get_random_secret_key)
-
-    def __str__(self):
-        return self.name
-
-
 class Metric(models.Model):
     name = models.CharField(max_length=100, unique=True)
     @abstractmethod
@@ -101,6 +87,7 @@ class Metric(models.Model):
         elif hasattr(self, 'substringcountingmetric'):
             return str(self.substringcountingmetric)
 
+
 class CharCountingMetric(Metric):
     char = models.CharField(max_length=1, unique=True, blank=False)
 
@@ -109,7 +96,7 @@ class CharCountingMetric(Metric):
         pass
 
     def __str__(self):
-        return 'Number of ' + str(self.char) + ' characters'
+        return 'Number of \"' + str(self.char) + '\" characters'
 
 
 class SubstringCountingMetric(Metric):
@@ -120,4 +107,15 @@ class SubstringCountingMetric(Metric):
         pass
 
     def __str__(self):
-        return 'Number of ' + str(self.substring) + ' substrings'
+        return 'Number of \"' + str(self.substring) + '\" substrings'
+
+
+class Team(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    users = models.ManyToManyField(User, related_name='team_user', blank=True)
+    admins = models.ManyToManyField(User, related_name='team_admin')
+    invite_key = models.CharField(max_length=100, default=get_random_secret_key)
+    tracked_metrics = models.ManyToManyField(Metric, related_name='metrics', blank=True)
+
+    def __str__(self):
+        return self.name

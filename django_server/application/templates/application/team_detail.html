@@ -6,7 +6,7 @@
 
         <h2 class="article-title">{{ object.name }} </h2>
         {% if is_admin %}
-            Team key for invitation: {{ object.invite_key }}
+            <button type="button" onclick="location.href='{% url 'team-administrate' object.id %}'" class="btn btn-link">Administrate</button>
         {% endif %}
         <div>
             <form method="POST">
@@ -51,15 +51,6 @@
                     {{ user.username }}</a>
                 {% endif %}
                 <small> {{default_metric_text}}: {{ dict|dict_key:user.username }} </small>
-                {% if is_admin %}
-                    <form method="POST">
-                        {% csrf_token %}
-                        <input type="hidden" name="query" value="admin" />
-                        <input type="hidden" name="target_user_id" value="{{ user.id }}" />
-                        <input type="hidden" name="target_team_id" value="{{ object.id }}" />
-                        <button class="btn btn-outline-info" type="submit">Make admin</button>
-                    </form>
-                {% endif %}
             </div>
           </div>
         {% endfor %}
