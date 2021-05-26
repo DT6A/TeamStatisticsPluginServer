@@ -19,30 +19,13 @@ Team = apps.get_model('users', 'Team')
 UserStat = apps.get_model('users', 'UserStat')
 Metric = apps.get_model('users', 'Metric')
 
-
-class ProfileListView(ListView):
-    model = User
-    context_object_name = 'users'
-    template_name = 'application/profile_list.html'
-
-    def get_queryset(self):
-        return sorted(User.objects.all(), key=lambda x: -x.profile.stats_for_all_time)
-
-
-class UserDetailView(DetailView):
-    model = User
-    context_object_name = 'object'
-    template_name = 'application/profile_detail.html'
-
-
-class TeamListView(ListView):
-    model = User
-    context_object_name = 'teams'
-    template_name = 'application/teams_list.html'
-
-    def get_queryset(self):
-        user = self.request.user
-        return (user.team_admin.all() | user.team_user.all()).distinct()
+PERIODS_DICT = {
+            'all': 'All time',
+            "365": 'Year',
+            "30": 'Month',
+            "7": 'Week',
+            "1": 'Day',
+        }
 
 
 def extract_metric(filtered, metric):
@@ -60,32 +43,83 @@ def aggregate_metric_within_delta(user, metric, delta):
     return s if s else 0
 
 
-def get_all_metrics_dict():
-    return dict({'lines': 'Lines of code'}, **{
-        name: str(Metric.objects.get(name=name)) for name in Metric.objects.all().values_list('name', flat=True)
-    })
-
-
 def get_team_metrics(team):
     return dict({'lines': 'Lines of code'}, **{
         name: str(team.tracked_metrics.get(name=name)) for name in team.tracked_metrics.all().values_list('name', flat=True)
     })
 
 
-PERIODS_DICT = {
-            'all': 'All time',
-            "365": 'Year',
-            "30": 'Month',
-            "7": 'Week',
-            "1": 'Day',
-        }
+class ProfileListView(ListView):
+    model = User
+    context_object_name = 'users'
+    template_name = 'application/profile_list.html'
+
+    def get_queryset(self):
+        return sorted(User.objects.all(), key=lambda x: -x.profile.stats_for_all_time)
+
+
+def get_all_metrics_dict():
+    return dict({'lines': 'Lines of code'}, **{
+        name: str(Metric.objects.get(name=name)) for name in Metric.objects.all().values_list('name', flat=True)
+    })
+
+
+class UserDetailView(DetailView):
+    model = User
+    context_object_name = 'object'
+    template_name = 'application/profile_detail.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context = self.add_metrics_options(self.object, context)
+        context['metric_text'] = 'Lines of code'
+        context['metric_value'] = aggregate_metric_all_time(self.object, 'lines')
+        context['default_period'] = 'all'
+        context['default_metric'] = 'lines'
+        context['default_metric_text'] = 'Lines of code' if context['default_metric'] == 'lines' else str(Metric.objects.get(name=context['default_metric']))
+
+        return context
+
+    def add_metrics_options(self, user, context):
+        context['metrics'] = get_all_metrics_dict()
+        context['periods'] = PERIODS_DICT
+        return context
+
+    def post(self, request, *args, **kwargs):
+        metric = request.POST.get('metrics', 'lines')
+        interval = request.POST.get('time', 'all')
+        user = request.POST.get('user_id', None)
+        context = {}
+        context = self.add_metrics_options(user, context)
+
+        context['metric_text'] = 'Lines of code' if metric == 'lines' else str(Metric.objects.get(name=metric))
+        if interval == 'all':
+            context['metric_value'] = aggregate_metric_all_time(user, metric)
+        else:
+            context['metric_value'] = aggregate_metric_within_delta(user, metric, timedelta(days=int(interval)))
+
+        context['object'] = User.objects.get(pk=user)
+        context['default_period'] = request.POST.get('time', 'all')
+        context['default_metric'] = request.POST.get('metrics', 'lines')
+        context['default_metric_text'] = 'Lines of code' if context['default_metric'] == 'lines' else str(Metric.objects.get(name=context['default_metric']))
+
+        return render(request, 'application/profile_detail.html', context)
+
+
+class TeamListView(ListView):
+    model = User
+    context_object_name = 'teams'
+    template_name = 'application/teams_list.html'
+
+    def get_queryset(self):
+        user = self.request.user
+        return (user.team_admin.all() | user.team_user.all()).distinct()
 
 
 class TeamDetailView(DetailView):
     model = Team
     context_object_name = 'object'
     template_name = 'application/team_detail.html'
-
 
     @staticmethod
     def add_metrics_options(team, context):

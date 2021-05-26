@@ -10,12 +10,29 @@
         {% endif %}
 
         <small class="text-muted">Joined {{ object.date_joined }}</small>
-        <p class="article-content">{{ object.content }}</p>
-        <p class="article-content">Lines written all the time: {{ object.profile.stats_for_all_time }}</p>
-        <p class="article-content">Lines written in the last year: {{ object.profile.stats_for_last_year }}</p>
-        <p class="article-content">Lines written in the last month: {{ object.profile.stats_for_last_month }}</p>
-        <p class="article-content">Lines written in the last week: {{ object.profile.stats_for_last_week }}</p>
-        <p class="article-content">Lines written in the last day: {{ object.profile.stats_for_last_day }}</p>
+
+        <div>
+            <form method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="query" value="metric" />
+                <input type="hidden" name="user_id" value="{{ object.id }}" />
+                <label for="metrics">Metric:</label>
+                    <select id="metrics" name="metrics">
+                        {% for metric_name, text in metrics.items %}
+                            <option value={{ metric_name }} {% if metric_name == default_metric %}selected{%endif%}>{{ text }}</option>
+                        {% endfor %}
+                    </select>
+                    <label for="time">Time interval:</label>
+                    <select id="time" name="time">
+                      {% for period, text in periods.items %}
+                        <option value={{ period }} {% if period == default_period %}selected{%endif%}>{{ text }}</option>
+                      {% endfor %}
+                    </select>
+                <button class="btn btn-outline-info" type="submit">Apply</button>
+            </form>
+        </div>
+
+        <p class="article-content">{{ metric_text }}: {{ metric_value }}</p>
       </div>
     </article>
 
