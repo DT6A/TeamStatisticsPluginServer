@@ -12,4 +12,5 @@ urlpatterns = [
     path('team/<int:pk>/', login_required(TeamDetailView.as_view()), name='team-detail'),
     path('team/<int:pk>/administrate', TeamDetailView.administrate_team, name='team-administrate'),
     path('join_team', join_team, name='team-join'),
+    path('team/<int:pk>/csv', team_to_csv, name='team-csv'),
 ]

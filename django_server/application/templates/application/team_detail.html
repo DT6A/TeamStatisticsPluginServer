@@ -5,6 +5,7 @@
       <div class="media-body">
 
         <h2 class="article-title">{{ object.name }} </h2>
+        <button type="button" onclick="location.href='{% url 'team-csv' object.id %}'" class="btn btn-link">Download csv</button>
         {% if is_admin %}
             <button type="button" onclick="location.href='{% url 'team-administrate' object.id %}'" class="btn btn-link">Administrate</button>
         {% endif %}

@@ -1,3 +1,4 @@
+import json
 from datetime import datetime, timedelta
 
 from django.apps import apps
@@ -8,9 +9,12 @@ from django.contrib.postgres.fields.jsonb import KeyTextTransform
 from django.db import models
 from django.db.models import Sum
 from django.db.models.functions import Cast
-from django.http import Http404, HttpResponseNotFound
+from django.http import Http404, HttpResponseNotFound, JsonResponse
 from django.shortcuts import redirect, render, HttpResponse
 from django.views.generic import ListView, DetailView
+from django.core import serializers
+
+import pandas as pd
 
 from .forms import TeamForm, TeamJoinForm
 
@@ -260,3 +264,23 @@ def join_team(request):
         form.fields['invite_key'].initial = ""
 
     return render(request, 'application/join_team.html', {'form': form})
+
+
+@login_required
+def team_to_csv(request, pk):
+    team = Team.objects.get(pk=pk)
+    users = team.users.all() | team.admins.all()
+
+    data = json.dumps([{'user': o.user.username,
+                            'metrics': o.metrics,
+                            'time_from': str(o.time_from),
+                            'time_to': str(o.time_to)}
+                           for o in list(UserStat.objects.filter(user__in=users))])
+    df = pd.read_json(data)
+    metrics_df = pd.json_normalize(df['metrics'])
+    del df['metrics']
+    df = pd.concat([df, metrics_df], axis=1)
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename=filename.csv'
+    df.to_csv(path_or_buf=response, sep=';', float_format='%.2f', index=False, decimal=",")
+    return response
