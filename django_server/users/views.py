@@ -42,7 +42,9 @@ def receive_data(request):
         return HttpResponseNotFound()
 
     data = json.loads(request.body.decode())
-    #date = timezone.now()
+    if 'token' not in data or 'time_from' not in data or 'time_to' not in data:
+        return HttpResponseNotFound("'token', 'time_from' or 'time_to' are not in received data")
+
     stat = UserStat()
     user = get_object_or_404(UserUniqueToken, token=data['token']).user
     stat.user = user
@@ -64,6 +66,8 @@ def plugin_login(request):
         return HttpResponseNotFound()
 
     data = json.loads(request.body.decode())
+    if 'username' not in data or 'password' not in data:
+        return HttpResponseNotFound("'username' or 'password' are not in received data")
     user = get_object_or_404(User, username=data['username'])
     if not user.check_password(data['password']):
         return HttpResponse('Invalid password', status=401)
