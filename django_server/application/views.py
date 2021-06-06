@@ -10,7 +10,7 @@ from django.contrib.postgres.fields.jsonb import KeyTextTransform
 from django.db import models
 from django.db.models import Sum
 from django.db.models.functions import Cast
-from django.http import HttpResponseNotFound
+from django.http import HttpResponseNotFound, Http404
 from django.shortcuts import redirect, render, HttpResponse
 from django.views.generic import ListView, DetailView
 from plotly.graph_objs import Scatter
@@ -181,7 +181,7 @@ class UserDetailView(DetailView):
         context = super().get_context_data(**kwargs)
         context = self.add_metrics_options(self.object, context)
         context['metric_text'] = 'Lines of code'
-        context['metric_value'] = aggregate_metric_all_time(self.object, 'lines')
+        context['metric_value'] = aggregate_metric_within_delta(self.object, 'lines', timedelta(days=int(30)))
         context['default_period'] = '30'
         context['default_metric'] = 'lines'
         context['default_metric_text'] = 'Lines of code' if context['default_metric'] == 'lines' else str(
@@ -393,10 +393,13 @@ class TeamDetailView(DetailView):
                 Returns:
                         Filled context
         """
+        if self.request.user not in self.object.admins.all() | self.object.users.all():
+            raise Http404
+
         context = super().get_context_data(**kwargs)
         context = self.add_metrics_options(self.object, context)
         context = self.add_is_admin(self.object, context)
-        context = self.add_users_sats(self.object, lambda u: u.profile.stats_for_all_time, context)
+        context = self.add_users_sats(self.object, lambda u: aggregate_metric_within_delta(u, 'lines', timedelta(days=int(30))), context)
         context['object'] = self.object
         context['default_period'] = '30'
         context['default_metric'] = 'lines'
@@ -417,6 +420,8 @@ class TeamDetailView(DetailView):
                         Rendered view
         """
         team = Team.objects.get(pk=request.POST['target_team_id'])
+        if request.user not in team.admins.all() | team.users.all():
+            raise Http404
         metric = request.POST.get('metrics', 'lines')
         interval = request.POST.get('time', '30')
 
