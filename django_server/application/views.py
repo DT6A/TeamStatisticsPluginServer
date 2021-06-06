@@ -165,7 +165,8 @@ class TeamDetailView(DetailView):
                 date_data = [(datetime.now() - timedelta(days=int(i))).date() for i in range(interval)]
                 date_y = [aggregate_metric_within_interval(user,
                                                            metric,
-                                                           datetime.now() - timedelta(days=i), datetime.now() - timedelta(days=i - 1))
+                                                           datetime.now() - timedelta(days=i),
+                                                           datetime.now() - timedelta(days=i - 1))
                           for i in range(1, interval + 1)]
             else:
                 date_data = [(datetime.now() - timedelta(hours=int(i))) for i in range(24)]
@@ -175,8 +176,9 @@ class TeamDetailView(DetailView):
                                                            datetime.now() - timedelta(hours=i - 1))
                           for i in range(1, 25)]
 
+            name = user.first_name + " " + user.last_name if user.first_name or user.last_name else user.username
             fig = Scatter(x=date_data, y=date_y,
-                    mode='lines', name=user.username,
+                    mode='lines', name=name,
                     opacity=0.8,
                     )
             plots.append(fig)
