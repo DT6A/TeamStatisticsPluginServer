@@ -18,11 +18,13 @@ from plotly.offline import plot
 
 from .forms import TeamForm, TeamJoinForm
 
+# Getting models
 Profile = apps.get_model('users', 'Profile')
 Team = apps.get_model('users', 'Team')
 UserStat = apps.get_model('users', 'UserStat')
 Metric = apps.get_model('users', 'Metric')
 
+# Mapping time interval to text representation
 PERIODS_DICT = {
     'all': 'All time',
     "365": 'Year',
@@ -33,26 +35,79 @@ PERIODS_DICT = {
 
 
 def extract_metric(filtered, metric):
+    """
+    Returns the sum of metric values.
+
+            Parameters:
+                    filtered: Filtered statistic notes
+                    metric: Target metric
+
+            Returns:
+                    Sum of metric values
+    """
     return filtered.annotate(metric_value=Cast(KeyTextTransform(metric, 'metrics'), models.IntegerField())).aggregate(
         Sum('metric_value'))['metric_value__sum']
 
 
 def aggregate_metric_all_time(user, metric):
+    """
+    Returns the sum of metric values collected over the all time for the given user.
+
+            Parameters:
+                    user: Target user
+                    metric: Target metric
+
+            Returns:
+                    Sum of metric values of the given user
+    """
     s = extract_metric(UserStat.objects.filter(user=user), metric)
     return s if s else 0
 
 
 def aggregate_metric_within_delta(user, metric, delta):
+    """
+    Returns the sum of metric values collected from given time point to the current time for the given user.
+
+            Parameters:
+                    user: Target user
+                    metric: Target metric
+                    delta: Time delta
+
+            Returns:
+                    Sum of metric values of the given user within required time interval
+    """
     s = extract_metric(UserStat.objects.filter(user=user, time_from__gte=datetime.now() - delta), metric)
     return s if s else 0
 
 
 def aggregate_metric_within_interval(user, metric, left, right):
+    """
+    Returns the sum of metric values collected within given time time for the given user.
+
+            Parameters:
+                    user: Target user
+                    metric: Target metric
+                    left: Left bound
+                    right: Right bound
+
+            Returns:
+                    Sum of metric values of the given user within required time interval
+    """
     s = extract_metric(UserStat.objects.filter(user=user, time_from__gte=left, time_from__lte=right), metric)
     return s if s else 0
 
 
 def get_team_metrics(team):
+    """
+    Returns all metrics tracked in the team.
+
+            Parameters:
+                    team: Target team
+
+            Returns:
+                Dictionary of tracked metrics, key -- metric name, value -- metric string representation for the
+            interface
+    """
     return dict({'lines': 'Lines of code'}, **{
         name: str(team.tracked_metrics.get(name=name)) for name in
         team.tracked_metrics.all().values_list('name', flat=True)
@@ -60,26 +115,69 @@ def get_team_metrics(team):
 
 
 class ProfileListView(ListView):
+    """
+    A view for list of users
+
+    Attributes
+    ----------
+    model :
+        Target model
+    context_object_name :
+        Name of user profile object used within template
+    template_name :
+        Path to the template
+    """
     model = User
     context_object_name = 'users'
     template_name = 'application/profile_list.html'
 
     def get_queryset(self):
+        """
+        Form the query set for request
+
+                Returns:
+                     Query set with users sorted by number of lines of code the have written
+        """
         return sorted(User.objects.all(), key=lambda x: -x.profile.stats_for_all_time)
 
 
 def get_all_metrics_dict():
+    """
+    Returns all available metrics
+
+            Returns:
+                    Dictionary of all metrics, key -- metric name, value -- metric string representation for the
+            interface
+    """
     return dict({'lines': 'Lines of code'}, **{
         name: str(Metric.objects.get(name=name)) for name in Metric.objects.all().values_list('name', flat=True)
     })
 
 
 class UserDetailView(DetailView):
+    """
+    A view for showing detailed information about the user
+
+    Attributes
+    ----------
+    model :
+        Target model
+    context_object_name :
+        Name of user object used within template
+    template_name :
+        Path to the template
+    """
     model = User
     context_object_name = 'object'
     template_name = 'application/profile_detail.html'
 
     def get_context_data(self, **kwargs):
+        """
+        Fills request context
+
+                Returns:
+                        Filled context
+        """
         context = super().get_context_data(**kwargs)
         context = self.add_metrics_options(self.object, context)
         context['metric_text'] = 'Lines of code'
@@ -93,11 +191,26 @@ class UserDetailView(DetailView):
 
     @staticmethod
     def add_metrics_options(user, context):
+        """
+        Modifies context with available metrics and time periods
+
+                Returns:
+                        Modified context
+        """
         context['metrics'] = get_all_metrics_dict()
         context['periods'] = PERIODS_DICT
         return context
 
     def post(self, request, *args, **kwargs):
+        """
+        Process post request
+
+                Parameters:
+                    request: Request to process
+
+                Returns:
+                        Rendered view
+        """
         metric = request.POST.get('metrics', 'lines')
         interval = request.POST.get('time', 'all')
         user = request.POST.get('user_id', None)
@@ -120,27 +233,75 @@ class UserDetailView(DetailView):
 
 
 class TeamListView(ListView):
+    """
+    A view for showing list of teams the user belongs to
+
+    Attributes
+    ----------
+    model :
+        Target model
+    context_object_name :
+        Name of teams list object used within template
+    template_name :
+        Path to the template
+    """
     model = User
     context_object_name = 'teams'
     template_name = 'application/teams_list.html'
 
     def get_queryset(self):
+        """
+        Form a query set
+
+                Returns:
+                        Query set with commands the user belongs to
+        """
         user = self.request.user
         return (user.team_admin.all() | user.team_user.all()).distinct()
 
 
 class TeamDetailView(DetailView):
+    """
+    A view for showing detailed information about the team
+
+    Attributes
+    ----------
+    model :
+        Target model
+    context_object_name :
+        Name of team object used within template
+    template_name :
+        Path to the template
+    """
     model = Team
     context_object_name = 'object'
     template_name = 'application/team_detail.html'
 
     @staticmethod
     def add_metrics_options(team, context):
+        """
+        Modifies context with metrics tracked by the team and time periods
+
+                Parameters:
+                        team: Target team
+                        context: Context to modify
+                Returns:
+                        Modified context
+        """
         context['metrics'] = get_team_metrics(team)
         context['periods'] = PERIODS_DICT
         return context
 
     def add_is_admin(self, team, context):
+        """
+        Adds to context information whether the user is administrator
+
+                Parameters:
+                        team: Target team
+                        context: Context to modify
+                Returns:
+                        Modified context
+        """
         user = self.request.user
         if team.admins.all().filter(pk=user.id).exists():
             context['is_admin'] = True
@@ -150,6 +311,16 @@ class TeamDetailView(DetailView):
 
     @staticmethod
     def add_users_sats(team, metric_getter, context):
+        """
+        Modifies context with data about team members metrics
+
+                Parameters:
+                        team: Target team
+                        metric_getter: Method to gain metric
+                        context: Context to modify
+                Returns:
+                        Modified context
+        """
         users = team.admins.all() | team.users.all()
         context['dict'] = {}
         for user in users:
@@ -158,6 +329,16 @@ class TeamDetailView(DetailView):
 
     @staticmethod
     def add_plot(metric, interval, context):
+        """
+        Modifies context with team members metrics plot
+
+                Parameters:
+                        metric: Target metric
+                        interval: Time interval to obtain data within
+                        context: Context to modify
+                Returns:
+                        Modified context
+        """
         plots = []
         team = context['object']
 
@@ -193,6 +374,12 @@ class TeamDetailView(DetailView):
         return context
 
     def get_context_data(self, **kwargs):
+        """
+        Fills request context
+
+                Returns:
+                        Filled context
+        """
         context = super().get_context_data(**kwargs)
         context = self.add_metrics_options(self.object, context)
         context = self.add_is_admin(self.object, context)
@@ -206,6 +393,15 @@ class TeamDetailView(DetailView):
         return context
 
     def post(self, request, *args, **kwargs):
+        """
+        Process post request
+
+                Parameters:
+                    request: Request to process
+
+                Returns:
+                        Rendered view
+        """
         team = Team.objects.get(pk=request.POST['target_team_id'])
         metric = request.POST.get('metrics', 'lines')
         interval = request.POST.get('time', 'all')
@@ -234,6 +430,16 @@ class TeamDetailView(DetailView):
     @staticmethod
     @login_required
     def administrate_team(request, pk):
+        """
+        View function for team administration
+
+                Parameters:
+                        request: Request to process
+                        pk: Target team id
+
+                Returns:
+                        Rendered view
+        """
         team = Team.objects.get(pk=pk)
         user = request.user
         if not team.admins.all().filter(pk=user.id).exists():
@@ -272,6 +478,15 @@ class TeamDetailView(DetailView):
 
 @login_required
 def create_team(request):
+    """
+    View function for team creation
+
+            Parameters:
+                    request: Request to process
+
+            Returns:
+                    Rendered view
+    """
     if request.method == 'POST':
         form = TeamForm(request.POST)
 
@@ -291,6 +506,15 @@ def create_team(request):
 
 @login_required
 def join_team(request):
+    """
+    View function for team joining
+
+            Parameters:
+                    request: Request to process
+
+            Returns:
+                    Rendered view
+    """
     if request.method == 'POST':
         form = TeamJoinForm(request.POST)
 
@@ -320,6 +544,16 @@ def join_team(request):
 
 @login_required
 def team_to_csv(request, pk):
+    """
+    View function for downloading csv file with statistics about all users from the team
+
+            Parameters:
+                    request: Request to process
+                    pk: Team id
+
+            Returns:
+                    Rendered view
+    """
     team = Team.objects.get(pk=pk)
     users = team.users.all() | team.admins.all()
 

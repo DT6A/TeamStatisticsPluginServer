@@ -12,6 +12,20 @@ from django.utils import timezone
 
 
 class UserStat(models.Model):
+    """
+    User statistics
+
+    Attributes
+    ----------
+    metrics :
+        Data about metrics
+    time_from :
+        Date tracked from
+    time_to :
+        Date tracked to
+    user :
+        User about whom records
+    """
     metrics = models.JSONField(default=dict)
     time_from = models.DateTimeField(default=timezone.now())
     time_to = models.DateTimeField(default=timezone.now())
@@ -19,26 +33,60 @@ class UserStat(models.Model):
 
 
 class UserUniqueToken(models.Model):
+    """
+    User private unique token for interacting with plugin
+
+    Attributes
+    ----------
+    user :
+        Token owner
+    token :
+        Random token string
+    """
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     token = models.CharField(max_length=100, default=get_random_secret_key)
 
 
 def extract_metric(filtered, metric):
+    """
+    Returns the sum of metric values.
+
+            Parameters:
+                    filtered: Filtered statistic notes
+                    metric: Target metric
+
+            Returns:
+                    Sum of metric values
+    """
     return filtered.annotate(metric_value=Cast(KeyTextTransform(metric, 'metrics'), models.IntegerField())).aggregate(
         Sum('metric_value'))['metric_value__sum']
 
 
 def aggregate_metric_all_time(user, metric):
+    """
+    Returns the sum of metric values collected over the all time for the given user.
+
+            Parameters:
+                    user: Target user
+                    metric: Target metric
+
+            Returns:
+                    Sum of metric values of the given user
+    """
     s = extract_metric(UserStat.objects.filter(user=user), metric)
     return s if s else 0
 
 
-def aggregate_metric_within_delta(user, metric, delta):
-    s = extract_metric(UserStat.objects.filter(user=user, time_from__gte=datetime.now() - delta), metric)
-    return s if s else 0
-
-
 class Profile(models.Model):
+    """
+    User profile with additional information
+
+    Attributes
+    ----------
+
+    user :
+        Profile owner
+    """
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     #image = models.ImageField(default='default.jpg', upload_to='profile_pics')
 
@@ -76,6 +124,14 @@ class Profile(models.Model):
 
 
 class Metric(models.Model):
+    """
+    Metric representation
+
+    Attributes
+    ----------
+    name :
+        Metric name
+    """
     name = models.CharField(max_length=100, unique=True)
     @abstractmethod
     def extract_info_from_user_and_render_aggregative(self, user, time):
@@ -89,6 +145,14 @@ class Metric(models.Model):
 
 
 class CharCountingMetric(Metric):
+    """
+    Metric for counting characters
+
+    Attributes
+    ----------
+    char :
+        Character to count
+    """
     char = models.CharField(max_length=1, unique=True, blank=False)
 
     @override
@@ -100,6 +164,14 @@ class CharCountingMetric(Metric):
 
 
 class SubstringCountingMetric(Metric):
+    """
+    Metric for counting substrings
+
+    Attributes
+    ----------
+    substring :
+        Substring to count
+    """
     substring = models.CharField(max_length=100, unique=True, blank=False)
 
     @override
@@ -111,6 +183,22 @@ class SubstringCountingMetric(Metric):
 
 
 class Team(models.Model):
+    """
+    Team of users
+
+    Attributes
+    ----------
+    name :
+        Team name
+    users :
+        Team members
+    admins :
+        Team administrators
+    invite_key :
+        Team invitation key
+    tracked_metrics :
+        Metrics tracked within the team
+    """
     name = models.CharField(max_length=100, unique=True)
     users = models.ManyToManyField(User, related_name='team_user', blank=True)
     admins = models.ManyToManyField(User, related_name='team_admin')
