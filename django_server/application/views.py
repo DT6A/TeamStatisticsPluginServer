@@ -361,9 +361,22 @@ class TeamDetailView(DetailView):
             name = user.first_name + " " + user.last_name if user.first_name or user.last_name else user.username
             fig = Scatter(x=date_data, y=date_y,
                           mode='lines', name=name,
-                          opacity=0.8,
+                          opacity=0.5,
                           )
             plots.append(fig)
+
+        if interval != 1:
+            date_data = [(datetime.now() - timedelta(days=int(i))).date() for i in range(interval)]
+            date_y = [context['threshold'] for _ in range(1, interval + 1)]
+        else:
+            date_data = [(datetime.now() - timedelta(hours=int(i))) for i in range(24)]
+            date_y = [context['threshold'] for _ in range(1, 25)]
+
+        fig = Scatter(x=date_data, y=date_y,
+                      mode='lines', name="THRESHOLD",
+                      opacity=1, marker_color='red'
+                      )
+        plots.append(fig)
 
         plot_div = plot({
             'data': plots,
@@ -388,6 +401,7 @@ class TeamDetailView(DetailView):
         context['default_period'] = 'all'
         context['default_metric'] = 'lines'
         context['default_metric_text'] = get_all_metrics_dict()['lines']
+        context['threshold'] = 400
         context = self.add_plot('lines', 365, context)
 
         return context
@@ -420,6 +434,7 @@ class TeamDetailView(DetailView):
         context['default_period'] = request.POST.get('time', 'all')
         context['default_metric'] = request.POST.get('metrics', 'lines')
         context['default_metric_text'] = get_team_metrics(team)[context['default_metric']]
+        context['threshold'] = int(request.POST.get('threshold', 400))
 
         if interval == 'all':
             context = self.add_plot(metric, 365, context)
