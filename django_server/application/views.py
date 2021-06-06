@@ -13,6 +13,10 @@ from django.http import Http404, HttpResponseNotFound, JsonResponse
 from django.shortcuts import redirect, render, HttpResponse
 from django.views.generic import ListView, DetailView
 from django.core import serializers
+from plotly.graph_objs import Scatter
+
+from plotly.offline import plot
+import plotly.graph_objs as go
 
 import pandas as pd
 
@@ -44,6 +48,11 @@ def aggregate_metric_all_time(user, metric):
 
 def aggregate_metric_within_delta(user, metric, delta):
     s = extract_metric(UserStat.objects.filter(user=user, time_from__gte=datetime.now() - delta), metric)
+    return s if s else 0
+
+
+def aggregate_metric_within_interval(user, metric, left, right):
+    s = extract_metric(UserStat.objects.filter(user=user, time_from__gte=left, time_from__lte=right), metric)
     return s if s else 0
 
 
@@ -147,14 +156,49 @@ class TeamDetailView(DetailView):
             context['dict'][user.username] = metric_getter(user)
         return context
 
+    def add_plot(self, metric, interval, context):
+        plots = []
+        team = context['object']
+
+        for user in team.admins.all() | team.users.all():
+            if interval != 1:
+                date_data = [(datetime.now() - timedelta(days=int(i))).date() for i in range(interval)]
+                date_y = [aggregate_metric_within_interval(user,
+                                                           metric,
+                                                           datetime.now() - timedelta(days=i), datetime.now() - timedelta(days=i - 1))
+                          for i in range(1, interval + 1)]
+            else:
+                date_data = [(datetime.now() - timedelta(hours=int(i))) for i in range(24)]
+                date_y = [aggregate_metric_within_interval(user,
+                                                           metric,
+                                                           datetime.now() - timedelta(hours=i),
+                                                           datetime.now() - timedelta(hours=i - 1))
+                          for i in range(1, 25)]
+
+            fig = Scatter(x=date_data, y=date_y,
+                    mode='lines', name=user.username,
+                    opacity=0.8,
+                    )
+            plots.append(fig)
+
+        plot_div = plot({
+            'data': plots,
+            'layout': {'title': 'Stats', 'xaxis': {'title': 'Time'}, 'yaxis': {'title': context['metrics'][metric]}}
+        },
+                        output_type='div', include_plotlyjs=False, show_link=False, link_text="")
+        context['plot_div'] = plot_div
+        return context
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context = self.add_metrics_options(self.object, context)
         context = self.add_is_admin(self.object, context)
         context = self.add_users_sats(self.object, lambda u: u.profile.stats_for_all_time, context)
+        context['object'] = self.object
         context['default_period'] = 'all'
         context['default_metric'] = 'lines'
         context['default_metric_text'] = get_all_metrics_dict()['lines']
+        context = self.add_plot('lines', 365, context)
 
         return context
 
@@ -177,6 +221,11 @@ class TeamDetailView(DetailView):
         context['default_period'] = request.POST.get('time', 'all')
         context['default_metric'] = request.POST.get('metrics', 'lines')
         context['default_metric_text'] = get_team_metrics(team)[context['default_metric']]
+
+        if interval == 'all':
+            context = self.add_plot(metric, 365, context)
+        else:
+            context = self.add_plot(metric, int(interval), context)
         return render(request, 'application/team_detail.html', context)
 
     @staticmethod
