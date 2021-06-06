@@ -1,6 +1,7 @@
 import json
 from datetime import datetime, timedelta
 
+import pandas as pd
 from django.apps import apps
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -9,16 +10,11 @@ from django.contrib.postgres.fields.jsonb import KeyTextTransform
 from django.db import models
 from django.db.models import Sum
 from django.db.models.functions import Cast
-from django.http import Http404, HttpResponseNotFound, JsonResponse
+from django.http import HttpResponseNotFound
 from django.shortcuts import redirect, render, HttpResponse
 from django.views.generic import ListView, DetailView
-from django.core import serializers
 from plotly.graph_objs import Scatter
-
 from plotly.offline import plot
-import plotly.graph_objs as go
-
-import pandas as pd
 
 from .forms import TeamForm, TeamJoinForm
 
@@ -28,12 +24,12 @@ UserStat = apps.get_model('users', 'UserStat')
 Metric = apps.get_model('users', 'Metric')
 
 PERIODS_DICT = {
-            'all': 'All time',
-            "365": 'Year',
-            "30": 'Month',
-            "7": 'Week',
-            "1": 'Day',
-        }
+    'all': 'All time',
+    "365": 'Year',
+    "30": 'Month',
+    "7": 'Week',
+    "1": 'Day',
+}
 
 
 def extract_metric(filtered, metric):
@@ -58,7 +54,8 @@ def aggregate_metric_within_interval(user, metric, left, right):
 
 def get_team_metrics(team):
     return dict({'lines': 'Lines of code'}, **{
-        name: str(team.tracked_metrics.get(name=name)) for name in team.tracked_metrics.all().values_list('name', flat=True)
+        name: str(team.tracked_metrics.get(name=name)) for name in
+        team.tracked_metrics.all().values_list('name', flat=True)
     })
 
 
@@ -89,11 +86,13 @@ class UserDetailView(DetailView):
         context['metric_value'] = aggregate_metric_all_time(self.object, 'lines')
         context['default_period'] = 'all'
         context['default_metric'] = 'lines'
-        context['default_metric_text'] = 'Lines of code' if context['default_metric'] == 'lines' else str(Metric.objects.get(name=context['default_metric']))
+        context['default_metric_text'] = 'Lines of code' if context['default_metric'] == 'lines' else str(
+            Metric.objects.get(name=context['default_metric']))
 
         return context
 
-    def add_metrics_options(self, user, context):
+    @staticmethod
+    def add_metrics_options(user, context):
         context['metrics'] = get_all_metrics_dict()
         context['periods'] = PERIODS_DICT
         return context
@@ -114,7 +113,8 @@ class UserDetailView(DetailView):
         context['object'] = User.objects.get(pk=user)
         context['default_period'] = request.POST.get('time', 'all')
         context['default_metric'] = request.POST.get('metrics', 'lines')
-        context['default_metric_text'] = 'Lines of code' if context['default_metric'] == 'lines' else str(Metric.objects.get(name=context['default_metric']))
+        context['default_metric_text'] = 'Lines of code' if context['default_metric'] == 'lines' else str(
+            Metric.objects.get(name=context['default_metric']))
 
         return render(request, 'application/profile_detail.html', context)
 
@@ -156,7 +156,8 @@ class TeamDetailView(DetailView):
             context['dict'][user.username] = metric_getter(user)
         return context
 
-    def add_plot(self, metric, interval, context):
+    @staticmethod
+    def add_plot(metric, interval, context):
         plots = []
         team = context['object']
 
@@ -178,16 +179,16 @@ class TeamDetailView(DetailView):
 
             name = user.first_name + " " + user.last_name if user.first_name or user.last_name else user.username
             fig = Scatter(x=date_data, y=date_y,
-                    mode='lines', name=name,
-                    opacity=0.8,
-                    )
+                          mode='lines', name=name,
+                          opacity=0.8,
+                          )
             plots.append(fig)
 
         plot_div = plot({
             'data': plots,
             'layout': {'title': 'Stats', 'xaxis': {'title': 'Time'}, 'yaxis': {'title': context['metrics'][metric]}}
         },
-                        output_type='div', include_plotlyjs=False, show_link=False, link_text="")
+            output_type='div', include_plotlyjs=False, show_link=False, link_text="")
         context['plot_div'] = plot_div
         return context
 
@@ -238,8 +239,7 @@ class TeamDetailView(DetailView):
         if not team.admins.all().filter(pk=user.id).exists():
             return HttpResponseNotFound("You are not an administrator of the team")
 
-        context = {}
-        context['object'] = team
+        context = {'object': team}
 
         if request.method == 'POST':
             query = request.POST.get('query', None)
@@ -299,7 +299,8 @@ def join_team(request):
 
             if Team.objects.filter(invite_key=key).exists():
                 team = Team.objects.get(invite_key=key)
-                if team.admins.all().filter(pk=request.user.id).exists() or team.users.all().filter(pk=request.user.id).exists():
+                if team.admins.all().filter(pk=request.user.id).exists() or team.users.all().filter(
+                        pk=request.user.id).exists():
                     form.add_error('invite_key', 'You are already a member of the team')
                     return render(request, 'application/join_team.html', {'form': form})
 
@@ -323,10 +324,10 @@ def team_to_csv(request, pk):
     users = team.users.all() | team.admins.all()
 
     data = json.dumps([{'user': o.user.username,
-                            'metrics': o.metrics,
-                            'time_from': str(o.time_from),
-                            'time_to': str(o.time_to)}
-                           for o in list(UserStat.objects.filter(user__in=users))])
+                        'metrics': o.metrics,
+                        'time_from': str(o.time_from),
+                        'time_to': str(o.time_to)}
+                       for o in list(UserStat.objects.filter(user__in=users))])
     df = pd.read_json(data)
     metrics_df = pd.json_normalize(df['metrics'])
     del df['metrics']
