@@ -536,7 +536,7 @@ def create_team(request):
             team.save()
 
             messages.success(request, f'Team \"{team.name}\" was created')
-            FeedMessage(sender="SYSTEM", receiver=request.user, msg_content=f"You have created \"{team.name}\" team",
+            FeedMessage(sender=team.name, receiver=request.user, msg_content=f"You have created \"{team.name}\" team",
                         created_at=timezone.now())\
                 .save()
             return redirect('app-teams')
