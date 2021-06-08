@@ -23,6 +23,7 @@ Profile = apps.get_model('users', 'Profile')
 Team = apps.get_model('users', 'Team')
 UserStat = apps.get_model('users', 'UserStat')
 Metric = apps.get_model('users', 'Metric')
+Achievement = apps.get_model('users', 'Achievement')
 
 # Mapping time interval to text representation
 PERIODS_DICT = {
@@ -114,11 +115,42 @@ def get_team_metrics(team):
     })
 
 
+def get_user_metrics(user):
+    """
+    Returns all metrics tracked of user.
+
+            Parameters:
+                    user: Target user
+
+            Returns:
+                List of metrics name
+    """
+    teams = user.team_user.all() | user.team_admin.all()
+    all_metrics = []
+    for team in teams:
+        team_metrics_names = get_team_metrics(team).keys()
+        all_metrics += team_metrics_names
+    return list(set(all_metrics))
+
+
+def get_user_incomplete_achievements(user):
+    """
+        Returns incomplete achievements tracked by user.
+
+                Parameters:
+                        user: Target user
+
+                Returns:
+                    List of incomplete achievements name
+    """
+    return user.unfinished_achievements.all()
+
+
 class ProfileListView(ListView):
     """
     A view for list of users
 
-    Attributes
+    Attributes:
     ----------
     model :
         Target model
@@ -154,11 +186,30 @@ def get_all_metrics_dict():
     })
 
 
+def update_achievements(user):
+    """
+    Update completed achievements for user
+    """
+
+    incomplete_achievements = get_user_incomplete_achievements(user)
+    for achieve in incomplete_achievements:
+        completed = True
+        for name, goal in achieve.metric_to_goal.items():
+            current = aggregate_metric_all_time(user, Metric.objects.get(name=name))
+            print(current)
+            if current < goal:
+                completed = False
+        if completed:
+            pass
+            # TODO removing
+            # print("Complete")
+
+
 class UserDetailView(DetailView):
     """
     A view for showing detailed information about the user
 
-    Attributes
+    Attributes:
     ----------
     model :
         Target model
@@ -212,6 +263,9 @@ class UserDetailView(DetailView):
                         Rendered view
         """
         metric = request.POST.get('metrics', 'lines')
+        if request.POST.get('query', None) == "update_achievements":
+            user = request.user
+            update_achievements(user)
         interval = request.POST.get('time', 'all')
         user = request.POST.get('user_id', None)
         context = {}
@@ -236,7 +290,7 @@ class TeamListView(ListView):
     """
     A view for showing list of teams the user belongs to
 
-    Attributes
+    Attributes:
     ----------
     model :
         Target model
@@ -264,7 +318,7 @@ class TeamDetailView(DetailView):
     """
     A view for showing detailed information about the team
 
-    Attributes
+    Attributes:
     ----------
     model :
         Target model

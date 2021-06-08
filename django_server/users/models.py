@@ -1,7 +1,6 @@
 from abc import abstractmethod
 from datetime import datetime, timedelta
 
-from cattr.generation import override
 from django.contrib.auth.models import User
 from django.contrib.postgres.fields.jsonb import KeyTextTransform
 from django.core.management.utils import get_random_secret_key
@@ -15,7 +14,7 @@ class UserStat(models.Model):
     """
     User statistics
 
-    Attributes
+    Attributes:
     ----------
     metrics :
         Data about metrics
@@ -88,14 +87,17 @@ class Profile(models.Model):
         Profile owner
     """
     user = models.OneToOneField(User, on_delete=models.CASCADE)
-    #image = models.ImageField(default='default.jpg', upload_to='profile_pics')
+
+    # image = models.ImageField(default='default.jpg', upload_to='profile_pics')
 
     def __str__(self):
         return f'{self.user.username} Profile'
 
     @staticmethod
     def aggregate_lines(filtered):
-        return filtered.annotate(lines_value=Cast(KeyTextTransform('lines', 'metrics'), models.IntegerField())).aggregate(Sum('lines_value'))['lines_value__sum']
+        return \
+            filtered.annotate(lines_value=Cast(KeyTextTransform('lines', 'metrics'), models.IntegerField())).aggregate(
+                Sum('lines_value'))['lines_value__sum']
 
     @property
     def stats_for_all_time(self):
@@ -133,9 +135,6 @@ class Metric(models.Model):
         Metric name
     """
     name = models.CharField(max_length=100, unique=True)
-    @abstractmethod
-    def extract_info_from_user_and_render_aggregative(self, user, time):
-        pass
 
     def __str__(self):
         if hasattr(self, 'charcountingmetric'):
@@ -155,10 +154,6 @@ class CharCountingMetric(Metric):
     """
     char = models.CharField(max_length=1, unique=True, blank=False)
 
-    @override
-    def extract_info_from_user_and_render_aggregative(self, user, time):
-        pass
-
     def __str__(self):
         return 'Number of \"' + str(self.char) + '\" characters'
 
@@ -173,10 +168,6 @@ class SubstringCountingMetric(Metric):
         Substring to count
     """
     substring = models.CharField(max_length=100, unique=True, blank=False)
-
-    @override
-    def extract_info_from_user_and_render_aggregative(self, user, time):
-        pass
 
     def __str__(self):
         return 'Number of \"' + str(self.substring) + '\" substrings'
@@ -207,3 +198,14 @@ class Team(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class Achievement(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    assigned_users = models.ManyToManyField(User, related_name="unfinished_achievements", blank=False)
+    completed_users = models.ManyToManyField(User, related_name="finished_achievements", blank=True)
+    metric_to_goal = models.JSONField(default=dict)
+
+    def __str__(self):
+        return self.name
+

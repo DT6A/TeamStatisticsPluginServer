@@ -33,6 +33,14 @@
         </div>
 
         <p class="article-content">{{ metric_text }}: {{ metric_value }}</p>
+          {% if object.id == user.id %}
+            <form method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="query" value="update_achievements" />
+                <input type="hidden" name="user_id" value="{{ object.id }}" />
+                <button class="btn btn-outline-success" type="submit">Update achievements</button>
+            </form>
+          {% endif %}
       </div>
     </article>
 
