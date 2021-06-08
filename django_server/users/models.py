@@ -238,3 +238,24 @@ class Team(models.Model):
             name: str(self.tracked_metrics.get(name=name)) for name in
             self.tracked_metrics.all().values_list('name', flat=True)
         })
+
+
+class FeedMessage(models.Model):
+    """
+    Message for user feed
+
+    Attributes
+    ----------
+    sender :
+        Sender
+    receiver :
+        User who gets the message
+    msg_content :
+        Message content
+    created_at :
+        Time when message was sent
+    """
+    sender = models.CharField(max_length=100, blank=False)
+    receiver = models.ForeignKey(User, related_name="receiver", on_delete=models.CASCADE)
+    msg_content = models.CharField(max_length=1000, blank=False)
+    created_at = models.DateTimeField(default=timezone.now())

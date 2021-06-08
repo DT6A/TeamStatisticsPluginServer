@@ -12,6 +12,7 @@ from django.db.models import Sum
 from django.db.models.functions import Cast
 from django.http import HttpResponseNotFound, Http404
 from django.shortcuts import redirect, render, HttpResponse
+from django.utils import timezone
 from django.views.generic import ListView, DetailView
 from plotly.graph_objs import Scatter
 from plotly.offline import plot
@@ -23,6 +24,7 @@ Profile = apps.get_model('users', 'Profile')
 Team = apps.get_model('users', 'Team')
 UserStat = apps.get_model('users', 'UserStat')
 Metric = apps.get_model('users', 'Metric')
+FeedMessage = apps.get_model('users', 'FeedMessage')
 
 # Mapping time interval to text representation
 PERIODS_DICT = {
@@ -467,21 +469,41 @@ class TeamDetailView(DetailView):
 
             if query == 'admin':
                 user = User.objects.get(pk=request.POST['target_user_id'])
+                FeedMessage(sender=team.name, receiver=user,
+                            msg_content=f"You are now admin of \"{team.name}\" team", created_at=timezone.now()).save()
+                for admin in team.admins.all():
+                    FeedMessage(sender=team.name, receiver=admin,
+                                msg_content=f"{user.username} is now an admin of \"{team.name}\" team",
+                                created_at=timezone.now()).save()
                 team.users.remove(user)
                 team.admins.add(user)
             elif query == 'remove':
                 user = User.objects.get(pk=request.POST['target_user_id'])
                 team.users.remove(user)
+                FeedMessage(sender=team.name, receiver=user,
+                            msg_content=f"You have been removed from \"{team.name}\" team",
+                            created_at=timezone.now()).save()
+                for admin in team.admins.all():
+                    FeedMessage(sender=team.name, receiver=admin,
+                                msg_content=f"{user.username} was removed from \"{team.name}\" team",
+                                created_at=timezone.now()).save()
             elif query == 'add_metric' and request.POST.get('metrics_add', None):
                 metric = Metric.objects.get(name=request.POST['metrics_add'])
                 team.tracked_metrics.add(metric)
                 team.save()
                 for u in team.users.all() | team.admins.all():
+                    FeedMessage(sender=team.name, receiver=u,
+                                msg_content=f"{str(metric)} is now tracked in \"{team.name}\" team",
+                                created_at=timezone.now()).save()
                     u.profile.add_metric(request.POST['metrics_add'])
             elif query == 'rm_metric' and request.POST.get('metrics_rm', None):
                 metric = Metric.objects.get(name=request.POST['metrics_rm'])
                 team.tracked_metrics.remove(metric)
                 team.save()
+                for u in team.users.all() | team.admins.all():
+                    FeedMessage(sender=team.name, receiver=u,
+                                msg_content=f"{str(metric)} is not tracked anymore in \"{team.name}\" team",
+                                created_at=timezone.now()).save()
 
         context = TeamDetailView.add_metrics_options(team, context)
         del context['metrics']['lines']
@@ -514,6 +536,9 @@ def create_team(request):
             team.save()
 
             messages.success(request, f'Team \"{team.name}\" was created')
+            FeedMessage(sender="SYSTEM", receiver=request.user, msg_content=f"You have created \"{team.name}\" team",
+                        created_at=timezone.now())\
+                .save()
             return redirect('app-teams')
     else:
         form = TeamForm()
@@ -550,6 +575,14 @@ def join_team(request):
                 return render(request, 'application/join_team.html', {'form': form})
 
             team.users.add(request.user)
+            FeedMessage(sender=team.name, receiver=request.user, msg_content=f"You have joined \"{team.name}\" team",
+                        created_at=timezone.now()) \
+                .save()
+            for admin in team.admins.all():
+                FeedMessage(sender=team.name, receiver=admin,
+                            msg_content=f"{request.user.username} joined \"{team.name}\" team",
+                            created_at=timezone.now()) \
+                    .save()
             messages.success(request, f'You joined to \"{team.name}\" team')
             return redirect('app-teams')
     else:
@@ -587,3 +620,33 @@ def team_to_csv(request, pk):
     response['Content-Disposition'] = f'attachment; filename={team.name}.csv'
     df.to_csv(path_or_buf=response, sep=';', float_format='%.2f', index=False, decimal=",")
     return response
+
+
+class FeedMessageListView(ListView):
+    """
+    User feed view
+
+    Attributes
+    ----------
+    model :
+        Target model
+    context_object_name :
+        Name of user profile object used within template
+    template_name :
+        Path to the template
+    ordering :
+        Order to list objects
+    """
+    model = FeedMessage
+    context_object_name = 'feed_messages'
+    template_name = 'application/feed.html'
+
+    def get_queryset(self):
+        """
+        Form the query set for request
+
+                Returns:
+                     Query set with users sorted by number of lines of code the have written
+        """
+        print(self.request.user)
+        return FeedMessage.objects.filter(receiver=self.request.user).order_by('-created_at', '-created_at__second')

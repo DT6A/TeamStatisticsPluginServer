@@ -13,4 +13,5 @@ urlpatterns = [
     path('team/<int:pk>/administrate', TeamDetailView.administrate_team, name='team-administrate'),
     path('join_team', join_team, name='team-join'),
     path('team/<int:pk>/csv', team_to_csv, name='team-csv'),
+    path('feed', login_required(FeedMessageListView.as_view()), name='app-feed'),
 ]
