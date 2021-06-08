@@ -35,7 +35,7 @@ class UserUniqueToken(models.Model):
     """
     User private unique token for interacting with plugin
 
-    Attributes
+    Attributes:
     ----------
     user :
         Token owner
@@ -76,6 +76,24 @@ def aggregate_metric_all_time(user, metric):
     return s if s else 0
 
 
+class Metric(models.Model):
+    """
+    Metric representation
+
+    Attributes:
+    ----------
+    name :
+        Metric name
+    """
+    name = models.CharField(max_length=100, unique=True)
+
+    def __str__(self):
+        if hasattr(self, 'charcountingmetric'):
+            return str(self.charcountingmetric)
+        elif hasattr(self, 'substringcountingmetric'):
+            return str(self.substringcountingmetric)
+
+
 class Profile(models.Model):
     """
     User profile with additional information
@@ -85,8 +103,11 @@ class Profile(models.Model):
 
     user :
         Profile owner
+    tracked_metrics :
+        Metrics tracked by the user
     """
     user = models.OneToOneField(User, on_delete=models.CASCADE)
+    tracked_metrics = models.ManyToManyField(Metric, related_name='metrics', blank=True)
 
     # image = models.ImageField(default='default.jpg', upload_to='profile_pics')
 
@@ -124,23 +145,19 @@ class Profile(models.Model):
     def stats_for_last_day(self):
         return self.lines_written_within_delta(timedelta(days=1))
 
+    def get_metrics(self):
+        return dict({'lines': 'Lines of code'}, **{
+            name: str(self.tracked_metrics.get(name=name)) for name in
+            self.tracked_metrics.all().values_list('name', flat=True)
+    })
 
-class Metric(models.Model):
-    """
-    Metric representation
+    def add_metric(self, metric):
+        self.tracked_metrics.add(Metric.objects.get(name=metric))
+        self.save()
 
-    Attributes:
-    ----------
-    name :
-        Metric name
-    """
-    name = models.CharField(max_length=100, unique=True)
-
-    def __str__(self):
-        if hasattr(self, 'charcountingmetric'):
-            return str(self.charcountingmetric)
-        elif hasattr(self, 'substringcountingmetric'):
-            return str(self.substringcountingmetric)
+    def remove_metric(self, metric):
+        self.tracked_metrics.remove(Metric.objects.get(name=metric))
+        self.save()
 
 
 class CharCountingMetric(Metric):
@@ -194,10 +211,44 @@ class Team(models.Model):
     users = models.ManyToManyField(User, related_name='team_user', blank=True)
     admins = models.ManyToManyField(User, related_name='team_admin')
     invite_key = models.CharField(max_length=100, default=get_random_secret_key)
-    tracked_metrics = models.ManyToManyField(Metric, related_name='metrics', blank=True)
+    tracked_metrics = models.ManyToManyField(Metric, related_name='u_metrics', blank=True)
 
     def __str__(self):
         return self.name
+
+    def get_team_metrics(self):
+        """
+        Returns all metrics tracked in the team.
+
+                Returns:
+                    Dictionary of tracked metrics, key -- metric name, value -- metric string representation for the
+                interface
+        """
+        return dict({'lines': 'Lines of code'}, **{
+            name: str(self.tracked_metrics.get(name=name)) for name in
+            self.tracked_metrics.all().values_list('name', flat=True)
+        })
+
+
+class FeedMessage(models.Model):
+    """
+    Message for user feed
+
+    Attributes
+    ----------
+    sender :
+        Sender
+    receiver :
+        User who gets the message
+    msg_content :
+        Message content
+    created_at :
+        Time when message was sent
+    """
+    sender = models.CharField(max_length=100, blank=False)
+    receiver = models.ForeignKey(User, related_name="receiver", on_delete=models.CASCADE)
+    msg_content = models.CharField(max_length=1000, blank=False)
+    created_at = models.DateTimeField(default=timezone.now())
 
 
 class Achievement(models.Model):
@@ -208,4 +259,3 @@ class Achievement(models.Model):
 
     def __str__(self):
         return self.name
-

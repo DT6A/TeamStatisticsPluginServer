@@ -8,4 +8,4 @@ admin.site.register(Team)
 admin.site.register(CharCountingMetric)
 admin.site.register(SubstringCountingMetric)
 admin.site.register(Achievement)
-
+admin.site.register(FeedMessage)

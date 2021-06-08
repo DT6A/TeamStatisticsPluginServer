@@ -10,8 +10,9 @@ from django.contrib.postgres.fields.jsonb import KeyTextTransform
 from django.db import models
 from django.db.models import Sum
 from django.db.models.functions import Cast
-from django.http import HttpResponseNotFound
+from django.http import HttpResponseNotFound, Http404
 from django.shortcuts import redirect, render, HttpResponse
+from django.utils import timezone
 from django.views.generic import ListView, DetailView
 from plotly.graph_objs import Scatter
 from plotly.offline import plot
@@ -24,6 +25,7 @@ Team = apps.get_model('users', 'Team')
 UserStat = apps.get_model('users', 'UserStat')
 Metric = apps.get_model('users', 'Metric')
 Achievement = apps.get_model('users', 'Achievement')
+FeedMessage = apps.get_model('users', 'FeedMessage')
 
 # Mapping time interval to text representation
 PERIODS_DICT = {
@@ -232,8 +234,8 @@ class UserDetailView(DetailView):
         context = super().get_context_data(**kwargs)
         context = self.add_metrics_options(self.object, context)
         context['metric_text'] = 'Lines of code'
-        context['metric_value'] = aggregate_metric_all_time(self.object, 'lines')
-        context['default_period'] = 'all'
+        context['metric_value'] = aggregate_metric_within_delta(self.object, 'lines', timedelta(days=int(30)))
+        context['default_period'] = '30'
         context['default_metric'] = 'lines'
         context['default_metric_text'] = 'Lines of code' if context['default_metric'] == 'lines' else str(
             Metric.objects.get(name=context['default_metric']))
@@ -248,7 +250,13 @@ class UserDetailView(DetailView):
                 Returns:
                         Modified context
         """
-        context['metrics'] = get_all_metrics_dict()
+        context['metrics'] = user.profile.get_metrics()
+        context['metrics_l'] = dict(context['metrics'])
+        del context['metrics_l']['lines']
+        untracked_qs = Metric.objects.exclude(name__in=list(context['metrics_l'].keys()))
+        context['untracked'] = {
+            name: str(untracked_qs.get(name=name)) for name in untracked_qs.values_list('name', flat=True)
+        }
         context['periods'] = PERIODS_DICT
         return context
 
@@ -268,17 +276,23 @@ class UserDetailView(DetailView):
             update_achievements(user)
         interval = request.POST.get('time', 'all')
         user = request.POST.get('user_id', None)
-        context = {}
-        context = self.add_metrics_options(user, context)
+        context = {'object': User.objects.get(pk=user)}
 
-        context['metric_text'] = 'Lines of code' if metric == 'lines' else str(Metric.objects.get(name=metric))
         if interval == 'all':
             context['metric_value'] = aggregate_metric_all_time(user, metric)
         else:
             context['metric_value'] = aggregate_metric_within_delta(user, metric, timedelta(days=int(interval)))
 
-        context['object'] = User.objects.get(pk=user)
-        context['default_period'] = request.POST.get('time', 'all')
+        query = request.POST.get('query', None)
+        if query == 'add_metric' and request.POST.get('metrics_add', None):
+            context['object'].profile.add_metric(request.POST['metrics_add'])
+        elif query == 'rm_metric' and request.POST.get('metrics_rm', None):
+            context['object'].profile.remove_metric(request.POST['metrics_rm'])
+
+        context = self.add_metrics_options(context['object'], context)
+        context['metric_text'] = 'Lines of code' if metric == 'lines' else str(Metric.objects.get(name=metric))
+
+        context['default_period'] = request.POST.get('time', '30')
         context['default_metric'] = request.POST.get('metrics', 'lines')
         context['default_metric_text'] = 'Lines of code' if context['default_metric'] == 'lines' else str(
             Metric.objects.get(name=context['default_metric']))
@@ -342,7 +356,7 @@ class TeamDetailView(DetailView):
                 Returns:
                         Modified context
         """
-        context['metrics'] = get_team_metrics(team)
+        context['metrics'] = team.get_team_metrics()
         context['periods'] = PERIODS_DICT
         return context
 
@@ -415,9 +429,22 @@ class TeamDetailView(DetailView):
             name = user.first_name + " " + user.last_name if user.first_name or user.last_name else user.username
             fig = Scatter(x=date_data, y=date_y,
                           mode='lines', name=name,
-                          opacity=0.8,
+                          opacity=0.5,
                           )
             plots.append(fig)
+
+        if interval != 1:
+            date_data = [(datetime.now() - timedelta(days=int(i))).date() for i in range(interval)]
+            date_y = [context['threshold'] for _ in range(1, interval + 1)]
+        else:
+            date_data = [(datetime.now() - timedelta(hours=int(i))) for i in range(24)]
+            date_y = [context['threshold'] for _ in range(1, 25)]
+
+        fig = Scatter(x=date_data, y=date_y,
+                      mode='lines', name="THRESHOLD",
+                      opacity=1, marker_color='red'
+                      )
+        plots.append(fig)
 
         plot_div = plot({
             'data': plots,
@@ -434,15 +461,19 @@ class TeamDetailView(DetailView):
                 Returns:
                         Filled context
         """
+        if self.request.user not in self.object.admins.all() | self.object.users.all():
+            raise Http404
+
         context = super().get_context_data(**kwargs)
         context = self.add_metrics_options(self.object, context)
         context = self.add_is_admin(self.object, context)
-        context = self.add_users_sats(self.object, lambda u: u.profile.stats_for_all_time, context)
+        context = self.add_users_sats(self.object, lambda u: aggregate_metric_within_delta(u, 'lines', timedelta(days=int(30))), context)
         context['object'] = self.object
-        context['default_period'] = 'all'
+        context['default_period'] = '30'
         context['default_metric'] = 'lines'
         context['default_metric_text'] = get_all_metrics_dict()['lines']
-        context = self.add_plot('lines', 365, context)
+        context['threshold'] = 400
+        context = self.add_plot('lines', 30, context)
 
         return context
 
@@ -457,8 +488,10 @@ class TeamDetailView(DetailView):
                         Rendered view
         """
         team = Team.objects.get(pk=request.POST['target_team_id'])
+        if request.user not in team.admins.all() | team.users.all():
+            raise Http404
         metric = request.POST.get('metrics', 'lines')
-        interval = request.POST.get('time', 'all')
+        interval = request.POST.get('time', '30')
 
         context = {}
         context = self.add_metrics_options(team, context)
@@ -473,7 +506,8 @@ class TeamDetailView(DetailView):
         context['object'] = team
         context['default_period'] = request.POST.get('time', 'all')
         context['default_metric'] = request.POST.get('metrics', 'lines')
-        context['default_metric_text'] = get_team_metrics(team)[context['default_metric']]
+        context['default_metric_text'] = team.get_team_metrics()[context['default_metric']]
+        context['threshold'] = int(request.POST.get('threshold', 400))
 
         if interval == 'all':
             context = self.add_plot(metric, 365, context)
@@ -506,19 +540,41 @@ class TeamDetailView(DetailView):
 
             if query == 'admin':
                 user = User.objects.get(pk=request.POST['target_user_id'])
+                FeedMessage(sender=team.name, receiver=user,
+                            msg_content=f"You are now admin of \"{team.name}\" team", created_at=timezone.now()).save()
+                for admin in team.admins.all():
+                    FeedMessage(sender=team.name, receiver=admin,
+                                msg_content=f"{user.username} is now an admin of \"{team.name}\" team",
+                                created_at=timezone.now()).save()
                 team.users.remove(user)
                 team.admins.add(user)
             elif query == 'remove':
                 user = User.objects.get(pk=request.POST['target_user_id'])
                 team.users.remove(user)
+                FeedMessage(sender=team.name, receiver=user,
+                            msg_content=f"You have been removed from \"{team.name}\" team",
+                            created_at=timezone.now()).save()
+                for admin in team.admins.all():
+                    FeedMessage(sender=team.name, receiver=admin,
+                                msg_content=f"{user.username} was removed from \"{team.name}\" team",
+                                created_at=timezone.now()).save()
             elif query == 'add_metric' and request.POST.get('metrics_add', None):
                 metric = Metric.objects.get(name=request.POST['metrics_add'])
                 team.tracked_metrics.add(metric)
                 team.save()
+                for u in team.users.all() | team.admins.all():
+                    FeedMessage(sender=team.name, receiver=u,
+                                msg_content=f"{str(metric)} is now tracked in \"{team.name}\" team",
+                                created_at=timezone.now()).save()
+                    u.profile.add_metric(request.POST['metrics_add'])
             elif query == 'rm_metric' and request.POST.get('metrics_rm', None):
                 metric = Metric.objects.get(name=request.POST['metrics_rm'])
                 team.tracked_metrics.remove(metric)
                 team.save()
+                for u in team.users.all() | team.admins.all():
+                    FeedMessage(sender=team.name, receiver=u,
+                                msg_content=f"{str(metric)} is not tracked anymore in \"{team.name}\" team",
+                                created_at=timezone.now()).save()
 
         context = TeamDetailView.add_metrics_options(team, context)
         del context['metrics']['lines']
@@ -551,6 +607,9 @@ def create_team(request):
             team.save()
 
             messages.success(request, f'Team \"{team.name}\" was created')
+            FeedMessage(sender=team.name, receiver=request.user, msg_content=f"You have created \"{team.name}\" team",
+                        created_at=timezone.now())\
+                .save()
             return redirect('app-teams')
     else:
         form = TeamForm()
@@ -587,6 +646,14 @@ def join_team(request):
                 return render(request, 'application/join_team.html', {'form': form})
 
             team.users.add(request.user)
+            FeedMessage(sender=team.name, receiver=request.user, msg_content=f"You have joined \"{team.name}\" team",
+                        created_at=timezone.now()) \
+                .save()
+            for admin in team.admins.all():
+                FeedMessage(sender=team.name, receiver=admin,
+                            msg_content=f"{request.user.username} joined \"{team.name}\" team",
+                            created_at=timezone.now()) \
+                    .save()
             messages.success(request, f'You joined to \"{team.name}\" team')
             return redirect('app-teams')
     else:
@@ -621,6 +688,36 @@ def team_to_csv(request, pk):
     del df['metrics']
     df = pd.concat([df, metrics_df], axis=1)
     response = HttpResponse(content_type='text/csv')
-    response['Content-Disposition'] = 'attachment; filename=filename.csv'
+    response['Content-Disposition'] = f'attachment; filename={team.name}.csv'
     df.to_csv(path_or_buf=response, sep=';', float_format='%.2f', index=False, decimal=",")
     return response
+
+
+class FeedMessageListView(ListView):
+    """
+    User feed view
+
+    Attributes
+    ----------
+    model :
+        Target model
+    context_object_name :
+        Name of user profile object used within template
+    template_name :
+        Path to the template
+    ordering :
+        Order to list objects
+    """
+    model = FeedMessage
+    context_object_name = 'feed_messages'
+    template_name = 'application/feed.html'
+
+    def get_queryset(self):
+        """
+        Form the query set for request
+
+                Returns:
+                     Query set with users sorted by number of lines of code the have written
+        """
+        print(self.request.user)
+        return FeedMessage.objects.filter(receiver=self.request.user).order_by('-created_at', '-created_at__second')

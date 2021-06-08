@@ -9,6 +9,7 @@
         {% if is_admin %}
             <button type="button" onclick="location.href='{% url 'team-administrate' object.id %}'" class="btn btn-link">Administrate</button>
         {% endif %}
+        <br>
         <div>
             <form method="POST">
                 {% csrf_token %}
@@ -26,6 +27,10 @@
                         <option value={{ period }} {% if period == default_period %}selected{%endif%}>{{ text }}</option>
                       {% endfor %}
                     </select>
+                <br>
+                <label for="threshold">Metric threshold:</label>
+                <input type="text" id="threshold" name="threshold" class="form-control" placeholder="Threshold value" value="{{ threshold }}">
+
                 <button class="btn btn-outline-info" type="submit">Apply</button>
             </form>
         </div>
@@ -38,7 +43,12 @@
                 {% else %}
                     {{ user.username }}</a>
                 {% endif %}
-                <small> {{default_metric_text}}: {{ dict|dict_key:user.username }} </small>
+                <small>
+                {{default_metric_text}}:
+                {% if dict|dict_key:user.username < threshold %} <font color="red">{{ dict|dict_key:user.username }} </font>
+                {% else %} <font color="green">{{ dict|dict_key:user.username }}</font>
+                {% endif %}
+                </small>
             </div>
           </div>
         {% endfor %}
@@ -51,7 +61,12 @@
                 {% else %}
                     {{ user.username }}</a>
                 {% endif %}
-                <small> {{default_metric_text}}: {{ dict|dict_key:user.username }} </small>
+                <small>
+                {{default_metric_text}}:
+                {% if dict|dict_key:user.username < threshold %} <font color="red">{{ dict|dict_key:user.username }} </font>
+                {% else %} <font color="green">{{ dict|dict_key:user.username }}</font>
+                {% endif %}
+                </small>
             </div>
           </div>
         {% endfor %}
