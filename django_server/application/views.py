@@ -97,23 +97,6 @@ def aggregate_metric_within_interval(user, metric, left, right):
     return s if s else 0
 
 
-def get_team_metrics(team):
-    """
-    Returns all metrics tracked in the team.
-
-            Parameters:
-                    team: Target team
-
-            Returns:
-                Dictionary of tracked metrics, key -- metric name, value -- metric string representation for the
-            interface
-    """
-    return dict({'lines': 'Lines of code'}, **{
-        name: str(team.tracked_metrics.get(name=name)) for name in
-        team.tracked_metrics.all().values_list('name', flat=True)
-    })
-
-
 class ProfileListView(ListView):
     """
     A view for list of users
@@ -300,7 +283,7 @@ class TeamDetailView(DetailView):
                 Returns:
                         Modified context
         """
-        context['metrics'] = get_team_metrics(team)
+        context['metrics'] = team.get_team_metrics()
         context['periods'] = PERIODS_DICT
         return context
 
@@ -450,7 +433,7 @@ class TeamDetailView(DetailView):
         context['object'] = team
         context['default_period'] = request.POST.get('time', 'all')
         context['default_metric'] = request.POST.get('metrics', 'lines')
-        context['default_metric_text'] = get_team_metrics(team)[context['default_metric']]
+        context['default_metric_text'] = team.get_team_metrics()[context['default_metric']]
         context['threshold'] = int(request.POST.get('threshold', 400))
 
         if interval == 'all':

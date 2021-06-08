@@ -225,3 +225,16 @@ class Team(models.Model):
 
     def __str__(self):
         return self.name
+
+    def get_team_metrics(self):
+        """
+        Returns all metrics tracked in the team.
+
+                Returns:
+                    Dictionary of tracked metrics, key -- metric name, value -- metric string representation for the
+                interface
+        """
+        return dict({'lines': 'Lines of code'}, **{
+            name: str(self.tracked_metrics.get(name=name)) for name in
+            self.tracked_metrics.all().values_list('name', flat=True)
+        })
