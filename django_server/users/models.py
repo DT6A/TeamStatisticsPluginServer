@@ -80,7 +80,7 @@ class Profile(models.Model):
     """
     User profile with additional information
 
-    Attributes
+    Attributes:
     ----------
 
     user :
@@ -129,7 +129,7 @@ class Metric(models.Model):
     """
     Metric representation
 
-    Attributes
+    Attributes:
     ----------
     name :
         Metric name
@@ -147,7 +147,7 @@ class CharCountingMetric(Metric):
     """
     Metric for counting characters
 
-    Attributes
+    Attributes:
     ----------
     char :
         Character to count
@@ -177,7 +177,7 @@ class Team(models.Model):
     """
     Team of users
 
-    Attributes
+    Attributes:
     ----------
     name :
         Team name
