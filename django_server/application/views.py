@@ -197,7 +197,13 @@ class UserDetailView(DetailView):
                 Returns:
                         Modified context
         """
-        context['metrics'] = get_all_metrics_dict()
+        context['metrics'] = user.profile.get_metrics()
+        context['metrics_l'] = dict(context['metrics'])
+        del context['metrics_l']['lines']
+        untracked_qs = Metric.objects.exclude(name__in=list(context['metrics_l'].keys()))
+        context['untracked'] = {
+            name: str(untracked_qs.get(name=name)) for name in untracked_qs.values_list('name', flat=True)
+        }
         context['periods'] = PERIODS_DICT
         return context
 
@@ -214,16 +220,22 @@ class UserDetailView(DetailView):
         metric = request.POST.get('metrics', 'lines')
         interval = request.POST.get('time', 'all')
         user = request.POST.get('user_id', None)
-        context = {}
-        context = self.add_metrics_options(user, context)
+        context = {'object': User.objects.get(pk=user)}
 
-        context['metric_text'] = 'Lines of code' if metric == 'lines' else str(Metric.objects.get(name=metric))
         if interval == 'all':
             context['metric_value'] = aggregate_metric_all_time(user, metric)
         else:
             context['metric_value'] = aggregate_metric_within_delta(user, metric, timedelta(days=int(interval)))
 
-        context['object'] = User.objects.get(pk=user)
+        query = request.POST.get('query', None)
+        if query == 'add_metric' and request.POST.get('metrics_add', None):
+            context['object'].profile.add_metric(request.POST['metrics_add'])
+        elif query == 'rm_metric' and request.POST.get('metrics_rm', None):
+            context['object'].profile.remove_metric(request.POST['metrics_rm'])
+
+        context = self.add_metrics_options(context['object'], context)
+        context['metric_text'] = 'Lines of code' if metric == 'lines' else str(Metric.objects.get(name=metric))
+
         context['default_period'] = request.POST.get('time', '30')
         context['default_metric'] = request.POST.get('metrics', 'lines')
         context['default_metric_text'] = 'Lines of code' if context['default_metric'] == 'lines' else str(
@@ -481,6 +493,8 @@ class TeamDetailView(DetailView):
                 metric = Metric.objects.get(name=request.POST['metrics_add'])
                 team.tracked_metrics.add(metric)
                 team.save()
+                for u in team.users.all() | team.admins.all():
+                    u.profile.add_metric(request.POST['metrics_add'])
             elif query == 'rm_metric' and request.POST.get('metrics_rm', None):
                 metric = Metric.objects.get(name=request.POST['metrics_rm'])
                 team.tracked_metrics.remove(metric)
@@ -587,6 +601,6 @@ def team_to_csv(request, pk):
     del df['metrics']
     df = pd.concat([df, metrics_df], axis=1)
     response = HttpResponse(content_type='text/csv')
-    response['Content-Disposition'] = 'attachment; filename=filename.csv'
+    response['Content-Disposition'] = f'attachment; filename={team.name}.csv'
     df.to_csv(path_or_buf=response, sep=';', float_format='%.2f', index=False, decimal=",")
     return response

@@ -33,7 +33,39 @@
         </div>
 
         <p class="article-content">{{ metric_text }}: {{ metric_value }}</p>
+
+        {% if user.id == object.id %}
+            <form method="POST">
+                {% csrf_token %}
+                <div>
+                    <input type="hidden" name="query" value="metric" />
+                    <input type="hidden" name="user_id" value="{{ object.id }}" />
+                    <label for="metrics_add">Metric to start tracking:</label>
+                    <select id="metrics_add" name="metrics_add">
+                        {% for metric_name, text in untracked.items %}
+                            <option value={{ metric_name }}>{{ text }}</option>
+                        {% endfor %}
+                    </select>
+                    <button name="query" value="add_metric" class="btn btn-outline-success btn-sm" type="submit">Start tracking</button>
+                </div>
+                <div>
+                    <label for="metrics_rm">Metric to stop tracking:</label>
+                    <select id="metrics_rm" name="metrics_rm">
+                        {% for metric_name, text in metrics_l.items %}
+                            <option value={{ metric_name }}>{{ text }}</option>
+                        {% endfor %}
+                    </select>
+                    <button name="query" value="rm_metric" class="btn btn-outline-danger btn-sm" type="submit">Stop tracking</button>
+                </div>
+            </form>
+          {% endif %}
       </div>
     </article>
-
+    <p>
+        <div>
+            {% autoescape off %}
+            {{ plot_div }}
+            {% endautoescape %}
+        </div>
+    </p>
 {% endblock content %}

@@ -103,3 +103,20 @@ def all_metrics(request):
         "CHAR_COUNTING": [m.char for m in CharCountingMetric.objects.all()],
         "SUBSTRING_COUNTING": [m.substring for m in SubstringCountingMetric.objects.all()]
     })
+
+@csrf_exempt
+def user_metrics(request):
+    if request.method == 'GET':
+        return HttpResponseNotFound()
+
+    data = json.loads(request.body.decode())
+    if 'token' not in data:
+        return HttpResponseNotFound("'token' is absent in received data")
+
+    user = get_object_or_404(UserUniqueToken, token=data['token']).user
+    metrics = list(user.profile.get_metrics().keys())
+
+    return JsonResponse({
+        "CHAR_COUNTING": [m.char for m in CharCountingMetric.objects.filter(name__in=metrics)],
+        "SUBSTRING_COUNTING": [m.substring for m in SubstringCountingMetric.objects.filter(name__in=metrics)]
+    })
