@@ -234,7 +234,7 @@ class FeedMessage(models.Model):
     """
     Message for user feed
 
-    Attributes
+    Attributes:
     ----------
     sender :
         Sender

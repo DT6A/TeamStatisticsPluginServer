@@ -105,6 +105,7 @@ def all_metrics(request):
         "SUBSTRING_COUNTING": [m.substring for m in SubstringCountingMetric.objects.all()]
     })
 
+
 @csrf_exempt
 def user_metrics(request):
     if request.method == 'GET':

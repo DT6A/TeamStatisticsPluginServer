@@ -63,6 +63,7 @@ def aggregate_metric_all_time(user, metric):
             Returns:
                     Sum of metric values of the given user
     """
+    print(metric)
     s = extract_metric(UserStat.objects.filter(user=user), metric)
     return s if s else 0
 
@@ -197,14 +198,12 @@ def update_achievements(user):
     for achieve in incomplete_achievements:
         completed = True
         for name, goal in achieve.metric_to_goal.items():
-            current = aggregate_metric_all_time(user, Metric.objects.get(name=name))
-            print(current)
+            current = aggregate_metric_all_time(user, name)
             if current < goal:
                 completed = False
         if completed:
-            pass
-            # TODO removing
-            # print("Complete")
+            achieve.assigned_users.remove(user)
+            achieve.completed_users.add(user)
 
 
 class UserDetailView(DetailView):
