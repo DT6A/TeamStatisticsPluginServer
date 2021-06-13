@@ -10,6 +10,7 @@ from django.views.decorators.csrf import csrf_exempt
 
 from .forms import *
 from .models import *
+from .config import *
 
 
 def register(request):
@@ -101,8 +102,8 @@ def profile(request):
 @csrf_exempt
 def all_metrics(request):
     return JsonResponse({
-        "CHAR_COUNTING": [m.char for m in CharCountingMetric.objects.all()],
-        "SUBSTRING_COUNTING": [m.substring for m in SubstringCountingMetric.objects.all()]
+        CHAR_COUNTER: [m.char for m in CharCountingMetric.objects.all()],
+        WORD_COUNTER: [m.substring for m in SubstringCountingMetric.objects.all()]
     })
 
 
@@ -117,8 +118,46 @@ def user_metrics(request):
 
     user = get_object_or_404(UserUniqueToken, token=data['token']).user
     metrics = list(user.profile.get_metrics().keys())
+    param_metric = [
+        m.name for m in
+        CharCountingMetric.objects.filter(name__in=metrics) |
+        SubstringCountingMetric.objects.filter(name__in=metrics) |
+        SpecificBranchCommitCounterMetric.objects.filter(name__in=metrics) |
+        SpecificLengthCopyPasteCounter.objects.filter(name__in=metrics)
+    ]
 
-    return JsonResponse({
-        "CHAR_COUNTING": [m.char for m in CharCountingMetric.objects.filter(name__in=metrics)],
-        "SUBSTRING_COUNTING": [m.substring for m in SubstringCountingMetric.objects.filter(name__in=metrics)]
-    })
+    non_param_metric = [
+        m.string_representation for m in
+        Metric.objects.exclude(name__in=param_metric).filter(name__in=metrics)
+    ]
+    return_dict = {}
+    for string_representation in non_param_metric:
+        return_dict[string_representation] = string_representation
+    length_copy_values = [
+        m.substring_length for m in
+        SpecificLengthCopyPasteCounter.objects.filter(
+            name__in=metrics,
+            string_representation=SPECIFIC_LENGTH_COPY_COUNTER
+        )
+    ]
+    length_paste_values = [
+        m.substring_length for m in
+        SpecificLengthCopyPasteCounter.objects.filter(
+            name__in=metrics,
+            string_representation=SPECIFIC_LENGTH_PASTE_COUNTER
+        )
+    ]
+    return_dict[CHAR_COUNTER] = [
+        m.char for m in
+        CharCountingMetric.objects.filter(name__in=metrics)
+    ]
+    return_dict[WORD_COUNTER] = [
+        m.substring for m in
+        SubstringCountingMetric.objects.filter(name__in=metrics)
+    ]
+    return_dict[SPECIFIC_BRANCH_COMMIT_COUNTER] = [
+        m.branch_name for m in SpecificBranchCommitCounterMetric.objects.filter(name__in=metrics)
+    ]
+    return_dict[SPECIFIC_LENGTH_COPY_COUNTER] = length_copy_values
+    return_dict[SPECIFIC_LENGTH_PASTE_COUNTER] = length_paste_values
+    return JsonResponse(return_dict)

@@ -10,6 +10,7 @@ from django.db.models import Sum
 from django.db.models.functions import Cast
 from django.utils import timezone
 
+from config import *
 
 class UserStat(models.Model):
     """
@@ -87,12 +88,14 @@ class Metric(models.Model):
         Metric name
     """
     name = models.CharField(max_length=100, unique=True)
+    string_representation = models.CharField(max_length=100, blank=True)
 
     def __str__(self):
         if hasattr(self, 'charcountingmetric'):
             return str(self.charcountingmetric)
         elif hasattr(self, 'substringcountingmetric'):
             return str(self.substringcountingmetric)
+        return self.string_representation
 
 
 class Profile(models.Model):
@@ -150,7 +153,7 @@ class Profile(models.Model):
         return dict({'lines': 'Lines of code'}, **{
             name: str(self.tracked_metrics.get(name=name)) for name in
             self.tracked_metrics.all().values_list('name', flat=True)
-    })
+        })
 
     def add_metric(self, metric):
         self.tracked_metrics.add(Metric.objects.get(name=metric))
@@ -180,7 +183,7 @@ class SubstringCountingMetric(Metric):
     """
     Metric for counting substrings
 
-    Attributes
+    Attributes:
     ----------
     substring :
         Substring to count
@@ -189,6 +192,45 @@ class SubstringCountingMetric(Metric):
 
     def __str__(self):
         return 'Number of \"' + str(self.substring) + '\" substrings'
+
+
+class SpecificBranchCommitCounterMetric(Metric):
+    """
+    Metric for counting commit on specific branch
+
+    Attributes:
+    ----------
+    branch_name :
+        Name of tracked branch
+    """
+    branch_name = models.CharField(max_length=100, unique=True, blank=False)
+
+    def __str__(self):
+        return 'Number of commit to \"' + str(self.branch_name) + '\" branch'
+
+
+class SpecificLengthCopyPasteCounter(Metric):
+    """
+    Metric for counting copying/pasting of substring with specific length
+
+    Attributes:
+    ----------
+    substring_length :
+        Specific length of substring
+    """
+    substring_length = models.IntegerField(unique=True, blank=False)
+
+    def __str__(self):
+        if self.string_representation == SPECIFIC_LENGTH_PASTE_COUNTER:
+            action = "pasted"
+        elif self.string_representation == SPECIFIC_LENGTH_COPY_COUNTER:
+            action = "copied"
+        else:
+            raise ValueError(
+                f"Incorrect metric for{self.string_representation} "
+                f"for counting copying/pasting of substring with specific length"
+            )
+        return f'Number of {action} words with ' + str(self.substring_length) + ' length'
 
 
 class Team(models.Model):
