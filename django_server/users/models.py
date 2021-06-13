@@ -10,7 +10,8 @@ from django.db.models import Sum
 from django.db.models.functions import Cast
 from django.utils import timezone
 
-from config import *
+from .config import *
+
 
 class UserStat(models.Model):
     """
@@ -227,10 +228,10 @@ class SpecificLengthCopyPasteCounter(Metric):
             action = "copied"
         else:
             raise ValueError(
-                f"Incorrect metric for{self.string_representation} "
+                f"Incorrect metric {self.string_representation} "
                 f"for counting copying/pasting of substring with specific length"
             )
-        return f'Number of {action} words with ' + str(self.substring_length) + ' length'
+        return f'Number of {action} words with length ' + str(self.substring_length)
 
 
 class Team(models.Model):
