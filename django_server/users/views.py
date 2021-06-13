@@ -10,6 +10,7 @@ from django.views.decorators.csrf import csrf_exempt
 
 from .forms import *
 from .models import *
+from .config import *
 
 
 def register(request):
@@ -101,8 +102,8 @@ def profile(request):
 @csrf_exempt
 def all_metrics(request):
     return JsonResponse({
-        "CHAR_COUNTING": [m.char for m in CharCountingMetric.objects.all()],
-        "SUBSTRING_COUNTING": [m.substring for m in SubstringCountingMetric.objects.all()]
+        CHAR_COUNTER: [m.char for m in CharCountingMetric.objects.all()],
+        WORD_COUNTER: [m.substring for m in SubstringCountingMetric.objects.all()]
     })
 
 
@@ -117,8 +118,10 @@ def user_metrics(request):
 
     user = get_object_or_404(UserUniqueToken, token=data['token']).user
     metrics = list(user.profile.get_metrics().keys())
-
+    print(metrics)
+    param_metric = [m.name for m in CharCountingMetric.objects.filter(name__in=metrics) | SubstringCountingMetric.objects.filter(name__in=metrics)]
+    non_param_metric = [m.string_representation for m in Metric.objects.exclude(name__in=param_metric)]
     return JsonResponse({
-        "CHAR_COUNTING": [m.char for m in CharCountingMetric.objects.filter(name__in=metrics)],
-        "SUBSTRING_COUNTING": [m.substring for m in SubstringCountingMetric.objects.filter(name__in=metrics)]
+        CHAR_COUNTER: [m.char for m in CharCountingMetric.objects.filter(name__in=metrics)],
+        WORD_COUNTER: [m.substring for m in SubstringCountingMetric.objects.filter(name__in=metrics)]
     })

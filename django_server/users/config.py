@@ -1,0 +1,21 @@
+# param metrics
+WORD_COUNTER = "WordCounter"
+CHAR_COUNTER = "CharCounter"
+SPECIFIC_BRANCH_COMMIT_COUNTER = "SpecificBranchCommitCounter"
+SPECIFIC_LENGTH_PASTE_COUNTER = "SpecificLengthPasteCounter"
+SPECIFIC_LENGTH_COPY_COUNTER = "SpecificLengthCopyCounter"
+
+# non param metrics
+ALL_CHAR_COUNTER = "AllCharCounter"
+MAX_OPENED_PROJECTS = "MaxOpenedProjects"
+PROJECT_OPENS_NUMBER = "ProjectOpensNumber"
+COMMIT_COUNTER = "CommitCounter"
+EDITOR_COUNTER = "EditorCounter"
+MAX_OPENED_EDITORS = "MaxOpenedEditors"
+COPY_COUNTER = "CopyCounter"
+PASTE_COUNTER = "PasteCounter"
+COPY_LENGTH_COUNTER = "CopyLengthCounter"
+PASTE_LENGTH_COUNTER = "PasteLengthCounter"
+MAX_PASTE_LENGTH = "MaxPasteLength"
+MAX_COPY_LENGTH = "MaxCopyLength"
+LINE_COUNTER = "LineCounter"
