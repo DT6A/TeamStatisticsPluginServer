@@ -120,9 +120,15 @@ def user_metrics(request):
     metrics = list(user.profile.get_metrics().keys())
     param_metric = [
         m.name for m in
-        CharCountingMetric.objects.filter(name__in=metrics) |
-        SubstringCountingMetric.objects.filter(name__in=metrics) |
-        SpecificBranchCommitCounterMetric.objects.filter(name__in=metrics) |
+        CharCountingMetric.objects.filter(name__in=metrics)
+    ] + [
+        m.name for m in
+        SubstringCountingMetric.objects.filter(name__in=metrics)
+    ] + [
+        m.name for m in
+        SpecificBranchCommitCounterMetric.objects.filter(name__in=metrics)
+    ] + [
+        m.name for m in
         SpecificLengthCopyPasteCounter.objects.filter(name__in=metrics)
     ]
 
@@ -160,4 +166,5 @@ def user_metrics(request):
     ]
     return_dict[SPECIFIC_LENGTH_COPY_COUNTER] = length_copy_values
     return_dict[SPECIFIC_LENGTH_PASTE_COUNTER] = length_paste_values
+    print(return_dict)
     return JsonResponse(return_dict)
