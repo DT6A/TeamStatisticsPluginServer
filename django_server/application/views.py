@@ -710,7 +710,8 @@ class FeedMessageListView(ListView):
     model = FeedMessage
     context_object_name = 'feed_messages'
     template_name = 'application/feed.html'
-
+    paginate_by = 15
+    
     def get_queryset(self):
         """
         Form the query set for request
