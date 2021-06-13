@@ -10,14 +10,16 @@ from django.contrib.postgres.fields.jsonb import KeyTextTransform
 from django.db import models
 from django.db.models import Sum
 from django.db.models.functions import Cast
+from django.forms import formset_factory
 from django.http import HttpResponseNotFound, Http404
 from django.shortcuts import redirect, render, HttpResponse
 from django.utils import timezone
+from django.views import View
 from django.views.generic import ListView, DetailView
 from plotly.graph_objs import Scatter
 from plotly.offline import plot
 
-from .forms import TeamForm, TeamJoinForm, CharCountingMetricForm, SubstringCountingMetricForm
+from .forms import *
 
 # Getting models
 Profile = apps.get_model('users', 'Profile')
@@ -711,7 +713,7 @@ class FeedMessageListView(ListView):
     context_object_name = 'feed_messages'
     template_name = 'application/feed.html'
     paginate_by = 15
-    
+
     def get_queryset(self):
         """
         Form the query set for request
@@ -800,3 +802,57 @@ def create_substring_metric(request):
 
     return render(request, 'application/create_with_form.html', {'form': form, 'target': 'substring counting metric'})
 
+
+class CreateAchievementView(View):
+    """
+        Achievement creation view
+
+        Attributes
+        ----------
+        goals_factory :
+            Factory for creating multiple metrics goals
+        template_name :
+            Path to the template
+    """
+    goals_factory = formset_factory(AchievementMetricForm, min_num=1, validate_min=True)
+    template_name = 'application/create_achievement.html'
+
+    def get(self, request, *args, **kwargs):
+        form = AchievementForm()
+        return render(request, self.template_name, {'form': form, 'goal_forms': self.goals_factory()})
+
+    def post(self, request, *args, **kwargs):
+        form = AchievementForm(request.POST)
+        goals = self.goals_factory(request.POST)
+
+        if goals.is_valid() and form.is_valid():
+            d = {}
+            is_ok = True
+            for goal in goals:
+                metric = goal.cleaned_data['metric']
+                number_goal = goal.cleaned_data['goal']
+                if metric.name in d:
+                    is_ok = False
+                    messages.warning(request, f'Metric \"{metric}\" is repeated')
+                if number_goal <= 0:
+                    is_ok = False
+                    messages.warning(request, f'Metric \"{metric}\" goal value must be positive')
+                print(goal.cleaned_data['metric'], goal.cleaned_data['goal'])
+                d[metric.name] = number_goal
+            if is_ok:
+                achieve = form.save()
+                achieve.assigned_users.add(request.user)
+                achieve.metric_to_goal = d
+                achieve.save()
+
+                messages.success(request, f'Achievement was created')
+                FeedMessage(sender=achieve.name, receiver=request.user,
+                            msg_content=f"You have created \"{achieve.name}\" achievement",
+                            created_at=timezone.now()) \
+                    .save()
+
+                return redirect('app-contribute')
+
+        context = {'form': form, 'goal_forms': goals}
+
+        return render(request, self.template_name, context)

@@ -11,6 +11,7 @@ urlpatterns = [
     path('contribute/', contribute, name='app-contribute'),
     path('contribute/create_char_metric/', create_char_metric, name='app-create-char-metric'),
     path('contribute/create_substring_metric/', create_substring_metric, name='app-create-substring-metric'),
+    path('contribute/create_achievement/', login_required(CreateAchievementView.as_view()), name='app-create-achievement'),
     path('profile/<int:pk>/', UserDetailView.as_view(), name='user-detail'),
     path('team/<int:pk>/', login_required(TeamDetailView.as_view()), name='team-detail'),
     path('team/<int:pk>/administrate', TeamDetailView.administrate_team, name='team-administrate'),

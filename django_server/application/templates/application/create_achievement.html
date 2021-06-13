@@ -1,0 +1,31 @@
+{% extends "application/base.html" %}
+{% load static %}
+{% load crispy_forms_tags %}
+{% block content %}
+     <div class="content-section">
+         <script src="{% static 'application/jquery.min.js' %}"></script>
+         <script src="{% static 'application/jquery.formset.js' %}"></script>
+         <form method="POST">
+             {% csrf_token %}
+             <fieldset class="form-group">
+                <legend class="border-bottom mb-4">Create a new achievement</legend>
+                 {{ form|crispy }}
+                 {{ goal_forms.management_form }}
+                 {% for goal in goal_forms %}
+                    <div class="link-formset">
+                        {{ goal|crispy }}
+                    </div>
+                 {% endfor %}
+             </fieldset>
+             <script>
+                $('.link-formset').formset({
+                    addText: 'Add Metric',
+                    deleteText: 'Remove Metric'
+                });
+            </script>
+             <div class="form-group">
+                <button class="btn btn-outline-info" type="submit">Create</button>
+             </div>
+         </form>
+     </div>
+{% endblock content %}

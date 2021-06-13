@@ -185,7 +185,7 @@ class SubstringCountingMetric(Metric):
     substring :
         Substring to count
     """
-    substring = models.CharField(max_length=100, unique=True, blank=False, validators=[MinLengthValidator(2)])
+    substring = models.CharField(max_length=80, unique=True, blank=False, validators=[MinLengthValidator(2)])
 
     def __str__(self):
         return 'Number of \"' + str(self.substring) + '\" substrings'
@@ -260,3 +260,4 @@ class Achievement(models.Model):
 
     def __str__(self):
         return self.name
+
