@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from django.contrib.auth.models import User
 from django.contrib.postgres.fields.jsonb import KeyTextTransform
 from django.core.management.utils import get_random_secret_key
+from django.core.validators import MinLengthValidator
 from django.db import models
 from django.db.models import Sum
 from django.db.models.functions import Cast
@@ -184,7 +185,7 @@ class SubstringCountingMetric(Metric):
     substring :
         Substring to count
     """
-    substring = models.CharField(max_length=100, unique=True, blank=False)
+    substring = models.CharField(max_length=100, unique=True, blank=False, validators=[MinLengthValidator(2)])
 
     def __str__(self):
         return 'Number of \"' + str(self.substring) + '\" substrings'

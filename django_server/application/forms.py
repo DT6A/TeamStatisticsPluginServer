@@ -5,12 +5,26 @@ from django.forms import ModelForm
 from django.apps import apps
 
 Team = apps.get_model('users', 'Team')
+CharCountingMetric = apps.get_model('users', 'CharCountingMetric')
+SubstringCountingMetric = apps.get_model('users', 'SubstringCountingMetric')
 
 
 class TeamForm(ModelForm):
     class Meta:
         model = Team
         fields = ['name']
+
+
+class CharCountingMetricForm(ModelForm):
+    class Meta:
+        model = CharCountingMetric
+        fields = ['char']
+
+
+class SubstringCountingMetricForm(ModelForm):
+    class Meta:
+        model = SubstringCountingMetric
+        fields = ['substring']
 
 
 class TeamJoinForm(ModelForm):

@@ -17,7 +17,7 @@ from django.views.generic import ListView, DetailView
 from plotly.graph_objs import Scatter
 from plotly.offline import plot
 
-from .forms import TeamForm, TeamJoinForm
+from .forms import TeamForm, TeamJoinForm, CharCountingMetricForm, SubstringCountingMetricForm
 
 # Getting models
 Profile = apps.get_model('users', 'Profile')
@@ -613,7 +613,7 @@ def create_team(request):
     else:
         form = TeamForm()
 
-    return render(request, 'application/create_team.html', {'form': form})
+    return render(request, 'application/create_with_form.html', {'form': form, 'target': 'team'})
 
 
 @login_required
@@ -720,3 +720,82 @@ class FeedMessageListView(ListView):
         """
         print(self.request.user)
         return FeedMessage.objects.filter(receiver=self.request.user).order_by('-created_at', '-created_at__second')
+
+
+@login_required
+def contribute(request):
+    """
+    View function for contribution page
+
+            Parameters:
+                    request: Request to process
+
+            Returns:
+                    Rendered view
+    """
+    return render(request, 'application/contribution_navigation.html', {})
+
+
+@login_required
+def create_char_metric(request):
+    """
+    View function for character metric creation
+
+            Parameters:
+                    request: Request to process
+
+            Returns:
+                    Rendered view
+    """
+    if request.method == 'POST':
+        form = CharCountingMetricForm(request.POST)
+
+        if form.is_valid():
+            metric = form.save()
+
+            metric.name = metric.char + '_METRIC'
+            metric.save()
+
+            messages.success(request, f'Metric was created')
+            FeedMessage(sender=metric.name, receiver=request.user,
+                        msg_content=f"You have created \"{metric.char}\" tracking metric",
+                        created_at=timezone.now())\
+                .save()
+            return redirect('app-contribute')
+    else:
+        form = CharCountingMetricForm()
+
+    return render(request, 'application/create_with_form.html', {'form': form, 'target': 'char counting metric'})
+
+
+@login_required
+def create_substring_metric(request):
+    """
+    View function for substring metric creation
+
+            Parameters:
+                    request: Request to process
+
+            Returns:
+                    Rendered view
+    """
+    if request.method == 'POST':
+        form = SubstringCountingMetricForm(request.POST)
+
+        if form.is_valid():
+            metric = form.save()
+
+            metric.name = '_'.join(metric.substring.split()) + '_METRIC'
+            metric.save()
+
+            messages.success(request, f'Metric was created')
+            FeedMessage(sender=metric.name, receiver=request.user,
+                        msg_content=f"You have created \"{metric.substring}\" tracking metric",
+                        created_at=timezone.now())\
+                .save()
+            return redirect('app-contribute')
+    else:
+        form = SubstringCountingMetricForm()
+
+    return render(request, 'application/create_with_form.html', {'form': form, 'target': 'substring counting metric'})
+
