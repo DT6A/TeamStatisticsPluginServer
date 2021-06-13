@@ -1,0 +1,9 @@
+pandas
+Django==3.1.7
+django-crispy-forms==1.11.2
+mysqlclient==2.0.3
+Pillow==8.1.2
+requests==2.25.1
+sqlparse==0.4.1
+python-dateutil==2.8.1
+plotly==4.14.3

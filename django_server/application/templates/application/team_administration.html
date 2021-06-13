@@ -1,0 +1,68 @@
+{% extends "application/base.html" %}
+{% block content %}
+
+    <article class="media content-section">
+      <div class="media-body">
+
+        <h2 class="article-title">{{ object.name }} </h2>
+        Team key for invitation: {{ object.invite_key }}
+        <div>
+            <form method="POST">
+                {% csrf_token %}
+                <div>
+                    <input type="hidden" name="query" value="metric" />
+                    <input type="hidden" name="target_team_id" value="{{ object.id }}" />
+                    <label for="metrics_add">Metric to start tracking:</label>
+                    <select id="metrics_add" name="metrics_add">
+                        {% for metric_name, text in untracked.items %}
+                            <option value={{ metric_name }}>{{ text }}</option>
+                        {% endfor %}
+                    </select>
+                    <button name="query" value="add_metric" class="btn btn-outline-success btn-sm" type="submit">Start tracking</button>
+                </div>
+                <div>
+                    <label for="metrics_rm">Metric to stop tracking:</label>
+                    <select id="metrics_rm" name="metrics_rm">
+                        {% for metric_name, text in metrics.items %}
+                            <option value={{ metric_name }}>{{ text }}</option>
+                        {% endfor %}
+                    </select>
+                    <button name="query" value="rm_metric" class="btn btn-outline-danger btn-sm" type="submit">Stop tracking</button>
+                </div>
+            </form>
+        </div>
+        <h3>Admins</h3>
+        {% for user in object.admins.all %}
+          <div class="item d-flex align-items-center">
+            <div class="text"><a href="{% url 'user-detail' user.id %}">
+                {% if user.first_name or user.last_name %}
+                    {{ user.first_name }} {{ user.last_name }} </a>
+                {% else %}
+                    {{ user.username }}</a>
+                {% endif %}
+            </div>
+          </div>
+        {% endfor %}
+        <h3>Users</h3>
+        {% for user in object.users.all %}
+          <div class="item d-flex align-items-center">
+                <form method="POST">
+                    <div class="text"><a href="{% url 'user-detail' user.id %}">
+                    {% if user.first_name or user.last_name %}
+                        {{ user.first_name }} {{ user.last_name }} </a>
+                    {% else %}
+                        {{ user.username }}</a>
+                    {% endif %}
+                    {% csrf_token %}
+                    <input type="hidden" name="target_user_id" value="{{ user.id }}" />
+                    <input type="hidden" name="target_team_id" value="{{ object.id }}" />
+                    <button name="query" class="btn btn-outline-primary btn-sm" type="submit" value="admin">Make admin</button>
+                    <button name="query" class="btn btn-outline-danger btn-sm" type="submit" value="remove">Remove user</button>
+                    </div>
+                </form>
+          </div>
+        {% endfor %}
+      </div>
+    </article>
+
+{% endblock content %}

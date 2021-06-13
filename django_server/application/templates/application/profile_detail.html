@@ -1,0 +1,79 @@
+{% extends "application/base.html" %}
+{% block content %}
+
+    <article class="media content-section">
+      <div class="media-body">
+        {% if object.first_name or object.last_name %}
+          <h2 class="article-title">{{ object.first_name }} {{ object.last_name }} </h2>
+        {% else %}
+          <h2 class="article-title">{{ object.username }}</h2>
+        {% endif %}
+
+        <small class="text-muted">Joined {{ object.date_joined }}</small>
+
+        <div>
+            <form method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="query" value="metric" />
+                <input type="hidden" name="user_id" value="{{ object.id }}" />
+                <label for="metrics">Metric:</label>
+                    <select id="metrics" name="metrics">
+                        {% for metric_name, text in metrics.items %}
+                            <option value={{ metric_name }} {% if metric_name == default_metric %}selected{%endif%}>{{ text }}</option>
+                        {% endfor %}
+                    </select>
+                    <label for="time">Time interval:</label>
+                    <select id="time" name="time">
+                      {% for period, text in periods.items %}
+                        <option value={{ period }} {% if period == default_period %}selected{%endif%}>{{ text }}</option>
+                      {% endfor %}
+                    </select>
+                <button class="btn btn-outline-info" type="submit">Apply</button>
+            </form>
+        </div>
+
+        <p class="article-content">{{ metric_text }}: {{ metric_value }}</p>
+
+        {% if user.id == object.id %}
+            <form method="POST">
+                {% csrf_token %}
+                <div>
+                    <input type="hidden" name="query" value="metric" />
+                    <input type="hidden" name="user_id" value="{{ object.id }}" />
+                    <label for="metrics_add">Metric to start tracking:</label>
+                    <select id="metrics_add" name="metrics_add">
+                        {% for metric_name, text in untracked.items %}
+                            <option value={{ metric_name }}>{{ text }}</option>
+                        {% endfor %}
+                    </select>
+                    <button name="query" value="add_metric" class="btn btn-outline-success btn-sm" type="submit">Start tracking</button>
+                </div>
+                <div>
+                    <label for="metrics_rm">Metric to stop tracking:</label>
+                    <select id="metrics_rm" name="metrics_rm">
+                        {% for metric_name, text in metrics_l.items %}
+                            <option value={{ metric_name }}>{{ text }}</option>
+                        {% endfor %}
+                    </select>
+                    <button name="query" value="rm_metric" class="btn btn-outline-danger btn-sm" type="submit">Stop tracking</button>
+                </div>
+            </form>
+          {% endif %}
+          {% if object.id == user.id %}
+            <form method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="query" value="update_achievements" />
+                <input type="hidden" name="user_id" value="{{ object.id }}" />
+                <button class="btn btn-outline-success" type="submit">Update achievements</button>
+            </form>
+          {% endif %}
+      </div>
+    </article>
+    <p>
+        <div>
+            {% autoescape off %}
+            {{ plot_div }}
+            {% endautoescape %}
+        </div>
+    </p>
+{% endblock content %}

@@ -1,0 +1,84 @@
+{% extends "application/base.html" %}
+{% block content %}
+
+    <article class="media content-section">
+      <div class="media-body">
+
+        <h2 class="article-title">{{ object.name }} </h2>
+        <button type="button" onclick="location.href='{% url 'team-csv' object.id %}'" class="btn btn-link">Download csv</button>
+        {% if is_admin %}
+            <button type="button" onclick="location.href='{% url 'team-administrate' object.id %}'" class="btn btn-link">Administrate</button>
+        {% endif %}
+        <br>
+        <div>
+            <form method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="query" value="metric" />
+                <input type="hidden" name="target_team_id" value="{{ object.id }}" />
+                <label for="metrics">Metric:</label>
+                    <select id="metrics" name="metrics">
+                        {% for metric_name, text in metrics.items %}
+                            <option value={{ metric_name }} {% if metric_name == default_metric %}selected{%endif%}>{{ text }}</option>
+                        {% endfor %}
+                    </select>
+                <label for="time">Time interval:</label>
+                    <select id="time" name="time">
+                      {% for period, text in periods.items %}
+                        <option value={{ period }} {% if period == default_period %}selected{%endif%}>{{ text }}</option>
+                      {% endfor %}
+                    </select>
+                <br>
+                <label for="threshold">Metric threshold:</label>
+                <input type="text" id="threshold" name="threshold" class="form-control" placeholder="Threshold value" value="{{ threshold }}">
+
+                <button class="btn btn-outline-info" type="submit">Apply</button>
+            </form>
+        </div>
+        <h3>Admins</h3>
+        {% for user in object.admins.all %}
+          <div class="item d-flex align-items-center">
+            <div class="text"><a href="{% url 'user-detail' user.id %}">
+                {% if user.first_name or user.last_name %}
+                    {{ user.first_name }} {{ user.last_name }} </a>
+                {% else %}
+                    {{ user.username }}</a>
+                {% endif %}
+                <small>
+                {{default_metric_text}}:
+                {% if dict|dict_key:user.username < threshold %} <font color="red">{{ dict|dict_key:user.username }} </font>
+                {% else %} <font color="green">{{ dict|dict_key:user.username }}</font>
+                {% endif %}
+                </small>
+            </div>
+          </div>
+        {% endfor %}
+        <h3>Users</h3>
+        {% for user in object.users.all %}
+          <div class="item d-flex align-items-center">
+            <div class="text"><a href="{% url 'user-detail' user.id %}">
+                {% if user.first_name or user.last_name %}
+                    {{ user.first_name }} {{ user.last_name }} </a>
+                {% else %}
+                    {{ user.username }}</a>
+                {% endif %}
+                <small>
+                {{default_metric_text}}:
+                {% if dict|dict_key:user.username < threshold %} <font color="red">{{ dict|dict_key:user.username }} </font>
+                {% else %} <font color="green">{{ dict|dict_key:user.username }}</font>
+                {% endif %}
+                </small>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </article>
+
+    <p>
+    <div>
+        {% autoescape off %}
+        {{ plot_div }}
+        {% endautoescape %}
+    </div>
+    </p>
+
+{% endblock content %}
