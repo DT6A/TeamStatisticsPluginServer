@@ -840,6 +840,11 @@ class CreateAchievementView(View):
                 print(goal.cleaned_data['metric'], goal.cleaned_data['goal'])
                 d[metric.name] = number_goal
             if is_ok:
+                for goal in goals:
+                    metric = goal.cleaned_data['metric']
+                    if metric not in request.user.profile.tracked_metrics.all():
+                        request.user.profile.tracked_metrics.add(metric)
+
                 achieve = form.save()
                 achieve.assigned_users.add(request.user)
                 achieve.metric_to_goal = d
