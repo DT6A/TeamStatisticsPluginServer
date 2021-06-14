@@ -1,5 +1,4 @@
 import json
-# most important line for yandex intern
 
 import dateutil.parser
 from django.contrib import messages

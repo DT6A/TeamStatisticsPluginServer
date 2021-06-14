@@ -96,6 +96,10 @@ class Metric(models.Model):
             return str(self.charcountingmetric)
         elif hasattr(self, 'substringcountingmetric'):
             return str(self.substringcountingmetric)
+        elif hasattr(self, 'specificlengthcopypastecounter'):
+            return str(self.specificlengthcopypastecounter)
+        elif hasattr(self, 'specificbranchcommitcountermetric'):
+            return str(self.specificbranchcommitcountermetric)
         return self.string_representation
 
 

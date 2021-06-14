@@ -950,3 +950,4 @@ class AchievementListView(ListView):
     model = Achievement
     context_object_name = 'achievements'
     template_name = 'application/achievement_list.html'
+    ordering = ['-id']
