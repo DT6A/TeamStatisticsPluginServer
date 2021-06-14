@@ -304,3 +304,6 @@ class Achievement(models.Model):
     def __str__(self):
         return self.name
 
+    @property
+    def percent_of_users(self):
+        return len(self.completed_users.all()) / len(User.objects.all()) * 100

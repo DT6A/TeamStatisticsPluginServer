@@ -26,6 +26,7 @@
               <a class="nav-item nav-link" href="{% url 'app-home' %}">Home</a>
               {% if user.is_authenticated %}
                 <a class="nav-item nav-link" href="{% url 'app-teams' %}">Teams</a>
+                <a class="nav-item nav-link" href="{% url 'achievement-list' %}">Achievements</a>
                 <a class="nav-item nav-link" href="{% url 'app-feed' %}">Feed</a>
                 <a class="nav-item nav-link" href="{% url 'app-contribute' %}">Contribute</a>
               {% endif %}

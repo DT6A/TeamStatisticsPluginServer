@@ -18,4 +18,6 @@ urlpatterns = [
     path('join_team', join_team, name='team-join'),
     path('team/<int:pk>/csv', team_to_csv, name='team-csv'),
     path('feed', login_required(FeedMessageListView.as_view()), name='app-feed'),
+    path('achievement/<int:pk>/', login_required(AchievementDetailView.as_view()), name='achievement-detail'),
+    path('achievements/', login_required(AchievementListView.as_view()), name='achievement-list'),
 ]

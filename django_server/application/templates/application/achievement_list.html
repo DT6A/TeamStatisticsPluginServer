@@ -1,0 +1,15 @@
+{% extends "application/base.html" %}
+{% block content %}
+    <article class="media content-section">
+        <div class="media-body">
+            <h2>{{ Achievements }}</h2>
+            <div>
+                {% for achievement in achievements %}
+                <a href="{% url 'achievement-detail' achievement.id %}">{{achievement}}</a>
+                <small>Obtained by {{achievement.percent_of_users}} of users</small>
+                    <br>
+                {% endfor %}
+            </div>
+        </div>
+    </article>
+{% endblock content %}

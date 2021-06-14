@@ -65,7 +65,6 @@ def aggregate_metric_all_time(user, metric):
             Returns:
                     Sum of metric values of the given user
     """
-    print(metric)
     s = extract_metric(UserStat.objects.filter(user=user), metric)
     return s if s else 0
 
@@ -206,6 +205,7 @@ def update_achievements(user):
         if completed:
             achieve.assigned_users.remove(user)
             achieve.completed_users.add(user)
+            achieve.save()
 
 
 class UserDetailView(DetailView):
@@ -240,7 +240,8 @@ class UserDetailView(DetailView):
         context['default_metric'] = 'lines'
         context['default_metric_text'] = 'Lines of code' if context['default_metric'] == 'lines' else str(
             Metric.objects.get(name=context['default_metric']))
-
+        context['achievement_l'] = Achievement.objects.all().filter(
+            id__in=self.request.user.unfinished_achievements.all())
         return context
 
     @staticmethod
@@ -289,12 +290,16 @@ class UserDetailView(DetailView):
             context['object'].profile.add_metric(request.POST['metrics_add'])
         elif query == 'rm_metric' and request.POST.get('metrics_rm', None):
             context['object'].profile.remove_metric(request.POST['metrics_rm'])
+        elif query == 'rm_achievement' and request.POST.get('achievement_rm', None):
+            achievement = Achievement.objects.get(name=request.POST.get('achievement_rm', None))
+            achievement.assigned_users.remove(user)
 
         context = self.add_metrics_options(context['object'], context)
         context['metric_text'] = 'Lines of code' if metric == 'lines' else str(Metric.objects.get(name=metric))
 
         context['default_period'] = request.POST.get('time', '30')
         context['default_metric'] = request.POST.get('metrics', 'lines')
+        context['achievement_l'] = Achievement.objects.all().filter(id__in=request.user.unfinished_achievements.all())
         context['default_metric_text'] = 'Lines of code' if context['default_metric'] == 'lines' else str(
             Metric.objects.get(name=context['default_metric']))
 
@@ -468,7 +473,9 @@ class TeamDetailView(DetailView):
         context = super().get_context_data(**kwargs)
         context = self.add_metrics_options(self.object, context)
         context = self.add_is_admin(self.object, context)
-        context = self.add_users_sats(self.object, lambda u: aggregate_metric_within_delta(u, 'lines', timedelta(days=int(30))), context)
+        context = self.add_users_sats(self.object,
+                                      lambda u: aggregate_metric_within_delta(u, 'lines', timedelta(days=int(30))),
+                                      context)
         context['object'] = self.object
         context['default_period'] = '30'
         context['default_metric'] = 'lines'
@@ -609,7 +616,7 @@ def create_team(request):
 
             messages.success(request, f'Team \"{team.name}\" was created')
             FeedMessage(sender=team.name, receiver=request.user, msg_content=f"You have created \"{team.name}\" team",
-                        created_at=timezone.now())\
+                        created_at=timezone.now()) \
                 .save()
             return redirect('app-teams')
     else:
@@ -721,7 +728,6 @@ class FeedMessageListView(ListView):
                 Returns:
                      Query set with users sorted by number of lines of code the have written
         """
-        print(self.request.user)
         return FeedMessage.objects.filter(receiver=self.request.user).order_by('-created_at', '-created_at__second')
 
 
@@ -762,7 +768,7 @@ def create_char_metric(request):
             messages.success(request, f'Metric was created')
             FeedMessage(sender=metric.name, receiver=request.user,
                         msg_content=f"You have created \"{metric.char}\" tracking metric",
-                        created_at=timezone.now())\
+                        created_at=timezone.now()) \
                 .save()
             return redirect('app-contribute')
     else:
@@ -794,7 +800,7 @@ def create_substring_metric(request):
             messages.success(request, f'Metric was created')
             FeedMessage(sender=metric.name, receiver=request.user,
                         msg_content=f"You have created \"{metric.substring}\" tracking metric",
-                        created_at=timezone.now())\
+                        created_at=timezone.now()) \
                 .save()
             return redirect('app-contribute')
     else:
@@ -837,7 +843,6 @@ class CreateAchievementView(View):
                 if number_goal <= 0:
                     is_ok = False
                     messages.warning(request, f'Metric \"{metric}\" goal value must be positive')
-                print(goal.cleaned_data['metric'], goal.cleaned_data['goal'])
                 d[metric.name] = number_goal
             if is_ok:
                 for goal in goals:
@@ -848,7 +853,6 @@ class CreateAchievementView(View):
                 achieve = form.save()
                 achieve.assigned_users.add(request.user)
                 achieve.metric_to_goal = d
-                achieve.save()
 
                 messages.success(request, f'Achievement was created')
                 FeedMessage(sender=achieve.name, receiver=request.user,
@@ -861,3 +865,88 @@ class CreateAchievementView(View):
         context = {'form': form, 'goal_forms': goals}
 
         return render(request, self.template_name, context)
+
+
+class AchievementDetailView(DetailView):
+    """
+    A view for showing detailed information about the achievement
+
+    Attributes:
+    ----------
+    model :
+        Target model
+    context_object_name :
+        Name of user object used within template
+    template_name :
+        Path to the template
+    """
+    model = Achievement
+    context_object_name = 'object'
+    template_name = 'application/achievement_detail.html'
+
+    @staticmethod
+    def add_achievement_goals_to_context(achievement, context):
+        context['metric_to_goal'] = {
+            'Lines of code written' if name == 'lines' else str(Metric.objects.get(name=name)):
+                achievement.metric_to_goal[name] for name in
+            achievement.metric_to_goal
+        }
+        return context
+
+    @staticmethod
+    def add_tracking_to_context(achievement, user, context):
+        context['is_obtained'] = achievement in user.finished_achievements.all()
+        context['is_tracked'] = (achievement in user.unfinished_achievements.all()) or context['is_obtained']
+        return context
+
+    def fill_context(self, achievement, user, context):
+        context = self.add_achievement_goals_to_context(achievement, context)
+        context = self.add_tracking_to_context(achievement, user, context)
+        return context
+
+    def get_context_data(self, **kwargs):
+        """
+        Fills request context
+
+                Returns:
+                        Filled context
+        """
+        context = super().get_context_data(**kwargs)
+        context = self.fill_context(self.object, self.request.user, context)
+        print(context)
+        return context
+
+    def post(self, request, *args, **kwargs):
+        """
+        Process post request
+
+                Parameters:
+                    request: Request to process
+
+                Returns:
+                        Rendered view
+        """
+        achievement = Achievement.objects.get(pk=request.POST.get('target_achievement_id', None))
+        achievement.assigned_users.add(request.user)
+        achievement.save()
+        context = {'object': achievement}
+        context = self.fill_context(achievement, request.user, context)
+        return render(request, self.template_name, context)
+
+
+class AchievementListView(ListView):
+    """
+    A view for list of achivements
+
+    Attributes:
+    ----------
+    model :
+        Target model
+    context_object_name :
+        Name of user profile object used within template
+    template_name :
+        Path to the template
+    """
+    model = Achievement
+    context_object_name = 'achievements'
+    template_name = 'application/achievement_list.html'
