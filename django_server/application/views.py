@@ -768,7 +768,7 @@ def create_char_metric(request):
         if form.is_valid():
             metric = form.save()
 
-            metric.name = metric.char + '_CHAR_METRIC'
+            metric.name = 'CharCounter(' + metric.char + ')'
             metric.save()
 
             messages.success(request, f'Metric was created')
@@ -800,7 +800,7 @@ def create_substring_metric(request):
         if form.is_valid():
             metric = form.save()
 
-            metric.name = '_'.join(metric.substring.split()) + '_SUBSTR_METRIC'
+            metric.name = 'WordCounter(' + metric.substring + ')'
             metric.save()
 
             messages.success(request, f'Metric was created')
@@ -827,7 +827,7 @@ def create_paste_metric(request):
                     Rendered view
     """
     if request.method == 'POST':
-        form = SpecificLengthCopyPasteCounterForm(request.POST)
+        form = SpecificLengthPasteCounterMetricForm(request.POST)
 
         if form.is_valid():
             if form.cleaned_data['substring_length'] <= 0:
@@ -836,8 +836,8 @@ def create_paste_metric(request):
                               {'form': form, 'target': 'paste metric'})
             metric = form.save()
 
-            metric.name = str(metric.substring_length) + '_PASTE_METRIC'
-            metric.string_representation = "SpecificLengthPasteCounter"
+            metric.name = 'SpecificLengthPasteCounter(' + str(metric.substring_length) + ')'
+            # metric.string_representation = "SpecificLengthPasteCounter"
             metric.save()
 
             messages.success(request, f'Metric was created')
@@ -847,7 +847,7 @@ def create_paste_metric(request):
                 .save()
             return redirect('app-contribute')
     else:
-        form = SpecificLengthCopyPasteCounterForm()
+        form = SpecificLengthPasteCounterMetricForm()
 
     return render(request, 'application/create_with_form.html', {'form': form, 'target': 'paste metric'})
 
@@ -864,17 +864,19 @@ def create_copy_metric(request):
                     Rendered view
     """
     if request.method == 'POST':
-        form = SpecificLengthCopyPasteCounterForm(request.POST)
+        form = SpecificLengthCopyCounterMetricForm(request.POST)
 
         if form.is_valid():
             if form.cleaned_data['substring_length'] <= 0:
                 messages.warning(request, f'Length must be positive')
                 return render(request, 'application/create_with_form.html',
                               {'form': form, 'target': 'copy metric'})
+            print("Before saving")
             metric = form.save()
+            print("After saving")
 
-            metric.name = str(metric.substring_length) + '_COPY_METRIC'
-            metric.string_representation = "SpecificLengthCopyCounter"
+            metric.name = 'SpecificLengthCopyCounter(' + str(metric.substring_length) + ')'
+            # metric.string_representation = f"SpecificLengthCopyCounter  {metric.substring_length}"
             metric.save()
 
             messages.success(request, f'Metric was created')
@@ -884,7 +886,7 @@ def create_copy_metric(request):
                 .save()
             return redirect('app-contribute')
     else:
-        form = SpecificLengthCopyPasteCounterForm()
+        form = SpecificLengthCopyCounterMetricForm()
 
     return render(request, 'application/create_with_form.html', {'form': form, 'target': 'copy metric'})
 

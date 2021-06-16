@@ -214,28 +214,34 @@ class SpecificBranchCommitCounterMetric(Metric):
         return 'Number of commit to \"' + str(self.branch_name) + '\" branch'
 
 
-class SpecificLengthCopyPasteCounter(Metric):
+class SpecificLengthCopyCounterMetric(Metric):
     """
-    Metric for counting copying/pasting of substring with specific length
+        Metric for counting copying of substring with specific length
 
-    Attributes:
-    ----------
-    substring_length :
-        Specific length of substring
-    """
-    substring_length = models.IntegerField(blank=False)
+        Attributes:
+        ----------
+        substring_length :
+            Specific length of substring
+        """
+    substring_length = models.IntegerField(unique=True, blank=False)
 
     def __str__(self):
-        if self.string_representation == SPECIFIC_LENGTH_PASTE_COUNTER:
-            action = "pasted"
-        elif self.string_representation == SPECIFIC_LENGTH_COPY_COUNTER:
-            action = "copied"
-        else:
-            raise ValueError(
-                f"Incorrect metric {self.string_representation} "
-                f"for counting copying/pasting of substring with specific length"
-            )
-        return f'Number of {action} words with length ' + str(self.substring_length)
+        return 'Number of copied words with length ' + str(self.substring_length)
+
+
+class SpecificLengthPasteCounterMetric(Metric):
+    """
+        Metric for counting copying/pasting of substring with specific length
+
+        Attributes:
+        ----------
+        substring_length :
+            Specific length of substring
+        """
+    substring_length = models.IntegerField(unique=True, blank=False)
+
+    def __str__(self):
+        return 'Number of pasted words with length ' + str(self.substring_length)
 
 
 class Team(models.Model):

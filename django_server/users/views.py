@@ -176,7 +176,10 @@ def user_metrics(request):
         SpecificBranchCommitCounterMetric.objects.filter(name__in=metrics)
     ] + [
         m.name for m in
-        SpecificLengthCopyPasteCounter.objects.filter(name__in=metrics)
+        SpecificLengthPasteCounterMetric.objects.filter(name__in=metrics)
+    ] + [
+        m.name for m in
+        SpecificLengthCopyCounterMetric.objects.filter(name__in=metrics)
     ]
 
     non_param_metric = [
@@ -186,19 +189,13 @@ def user_metrics(request):
     return_dict = {}
     for string_representation in non_param_metric:
         return_dict[string_representation] = string_representation
-    length_copy_values = [
+    return_dict[SPECIFIC_LENGTH_COPY_COUNTER] = [
         m.substring_length for m in
-        SpecificLengthCopyPasteCounter.objects.filter(
-            name__in=metrics,
-            string_representation=SPECIFIC_LENGTH_COPY_COUNTER
-        )
+        SpecificLengthCopyCounterMetric.objects.filter(name__in=metrics)
     ]
-    length_paste_values = [
+    return_dict[SPECIFIC_LENGTH_PASTE_COUNTER] = [
         m.substring_length for m in
-        SpecificLengthCopyPasteCounter.objects.filter(
-            name__in=metrics,
-            string_representation=SPECIFIC_LENGTH_PASTE_COUNTER
-        )
+        SpecificLengthPasteCounterMetric.objects.filter(name__in=metrics)
     ]
     return_dict[CHAR_COUNTER] = [
         m.char for m in
@@ -209,9 +206,8 @@ def user_metrics(request):
         SubstringCountingMetric.objects.filter(name__in=metrics)
     ]
     return_dict[SPECIFIC_BRANCH_COMMIT_COUNTER] = [
-        m.branch_name for m in SpecificBranchCommitCounterMetric.objects.filter(name__in=metrics)
+        m.branch_name for m in
+        SpecificBranchCommitCounterMetric.objects.filter(name__in=metrics)
     ]
-    return_dict[SPECIFIC_LENGTH_COPY_COUNTER] = length_copy_values
-    return_dict[SPECIFIC_LENGTH_PASTE_COUNTER] = length_paste_values
-    #print(return_dict)
+
     return JsonResponse(return_dict)
