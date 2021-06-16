@@ -762,7 +762,7 @@ def create_char_metric(request):
         if form.is_valid():
             metric = form.save()
 
-            metric.name = metric.char + '_METRIC'
+            metric.name = metric.char + '_CHAR_METRIC'
             metric.save()
 
             messages.success(request, f'Metric was created')
@@ -794,7 +794,7 @@ def create_substring_metric(request):
         if form.is_valid():
             metric = form.save()
 
-            metric.name = '_'.join(metric.substring.split()) + '_METRIC'
+            metric.name = '_'.join(metric.substring.split()) + '_SUBSTR_METRIC'
             metric.save()
 
             messages.success(request, f'Metric was created')
@@ -807,6 +807,112 @@ def create_substring_metric(request):
         form = SubstringCountingMetricForm()
 
     return render(request, 'application/create_with_form.html', {'form': form, 'target': 'substring counting metric'})
+
+
+@login_required
+def create_paste_metric(request):
+    """
+    View function for paste metric creation
+
+            Parameters:
+                    request: Request to process
+
+            Returns:
+                    Rendered view
+    """
+    if request.method == 'POST':
+        form = SpecificLengthCopyPasteCounterForm(request.POST)
+
+        if form.is_valid():
+            if form.cleaned_data['substring_length'] <= 0:
+                messages.warning(request, f'Length must be positive')
+                return render(request, 'application/create_with_form.html',
+                              {'form': form, 'target': 'paste metric'})
+            metric = form.save()
+
+            metric.name = str(metric.substring_length) + '_PASTE_METRIC'
+            metric.string_representation = "SpecificLengthPasteCounter"
+            metric.save()
+
+            messages.success(request, f'Metric was created')
+            FeedMessage(sender=metric.name, receiver=request.user,
+                        msg_content=f"You have created metric which tracks pastes of length {metric.substring_length}",
+                        created_at=timezone.now()) \
+                .save()
+            return redirect('app-contribute')
+    else:
+        form = SpecificLengthCopyPasteCounterForm()
+
+    return render(request, 'application/create_with_form.html', {'form': form, 'target': 'paste metric'})
+
+
+@login_required
+def create_copy_metric(request):
+    """
+    View function for copy metric creation
+
+            Parameters:
+                    request: Request to process
+
+            Returns:
+                    Rendered view
+    """
+    if request.method == 'POST':
+        form = SpecificLengthCopyPasteCounterForm(request.POST)
+
+        if form.is_valid():
+            if form.cleaned_data['substring_length'] <= 0:
+                messages.warning(request, f'Length must be positive')
+                return render(request, 'application/create_with_form.html',
+                              {'form': form, 'target': 'copy metric'})
+            metric = form.save()
+
+            metric.name = str(metric.substring_length) + '_COPY_METRIC'
+            metric.string_representation = "SpecificLengthCopyCounter"
+            metric.save()
+
+            messages.success(request, f'Metric was created')
+            FeedMessage(sender=metric.name, receiver=request.user,
+                        msg_content=f"You have created metric which tracks copies of length {metric.substring_length}",
+                        created_at=timezone.now()) \
+                .save()
+            return redirect('app-contribute')
+    else:
+        form = SpecificLengthCopyPasteCounterForm()
+
+    return render(request, 'application/create_with_form.html', {'form': form, 'target': 'copy metric'})
+
+
+@login_required
+def create_branch_metric(request):
+    """
+    View function for branch tracking metric creation
+
+            Parameters:
+                    request: Request to process
+
+            Returns:
+                    Rendered view
+    """
+    if request.method == 'POST':
+        form = SpecificBranchCommitCounterMetricForm(request.POST)
+
+        if form.is_valid():
+            metric = form.save()
+
+            metric.name = '_'.join(metric.branch_name.split()) + '_BRANCH_METRIC'
+            metric.save()
+
+            messages.success(request, f'Metric was created')
+            FeedMessage(sender=metric.name, receiver=request.user,
+                        msg_content=f"You have created metric which tracks \"{metric.branch_name}\" branch",
+                        created_at=timezone.now()) \
+                .save()
+            return redirect('app-contribute')
+    else:
+        form = SpecificBranchCommitCounterMetricForm()
+
+    return render(request, 'application/create_with_form.html', {'form': form, 'target': 'branch commits counter metric'})
 
 
 class CreateAchievementView(View):
@@ -929,6 +1035,10 @@ class AchievementDetailView(DetailView):
         achievement = Achievement.objects.get(pk=request.POST.get('target_achievement_id', None))
         achievement.assigned_users.add(request.user)
         achievement.save()
+        for metric_name in achievement.metric_to_goal:
+            metric = Metric.objects.get(name=metric_name)
+            if metric not in request.user.profile.tracked_metrics.all():
+                request.user.profile.tracked_metrics.add(metric)
         context = {'object': achievement}
         context = self.fill_context(achievement, request.user, context)
         return render(request, self.template_name, context)

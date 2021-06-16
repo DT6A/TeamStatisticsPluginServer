@@ -208,7 +208,7 @@ class SpecificBranchCommitCounterMetric(Metric):
     branch_name :
         Name of tracked branch
     """
-    branch_name = models.CharField(max_length=100, unique=True, blank=False)
+    branch_name = models.CharField(max_length=80, unique=True, blank=False)
 
     def __str__(self):
         return 'Number of commit to \"' + str(self.branch_name) + '\" branch'
@@ -223,7 +223,7 @@ class SpecificLengthCopyPasteCounter(Metric):
     substring_length :
         Specific length of substring
     """
-    substring_length = models.IntegerField(unique=True, blank=False)
+    substring_length = models.IntegerField(blank=False)
 
     def __str__(self):
         if self.string_representation == SPECIFIC_LENGTH_PASTE_COUNTER:
