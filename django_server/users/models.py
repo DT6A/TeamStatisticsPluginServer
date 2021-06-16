@@ -199,6 +199,21 @@ class SubstringCountingMetric(Metric):
         return 'Number of \"' + str(self.substring) + '\" substrings'
 
 
+class WordCountingMetric(Metric):
+    """
+    Metric for counting words
+
+    Attributes:
+    ----------
+    substring :
+        Substring to count
+    """
+    word = models.CharField(max_length=80, unique=True, blank=False, validators=[MinLengthValidator(2)])
+
+    def __str__(self):
+        return 'Number of \"' + str(self.word) + '\" word'
+
+
 class SpecificBranchCommitCounterMetric(Metric):
     """
     Metric for counting commit on specific branch

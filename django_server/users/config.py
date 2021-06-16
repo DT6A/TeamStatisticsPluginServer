@@ -1,5 +1,6 @@
 # param metrics
 WORD_COUNTER = "WordCounter"
+SUBSTRING_COUNTER = "SubstringCounter"
 CHAR_COUNTER = "CharCounter"
 SPECIFIC_BRANCH_COMMIT_COUNTER = "SpecificBranchCommitCounter"
 SPECIFIC_LENGTH_PASTE_COUNTER = "SpecificLengthPasteCounter"
@@ -19,3 +20,6 @@ PASTE_LENGTH_COUNTER = "PasteLengthCounter"
 MAX_PASTE_LENGTH = "MaxPasteLength"
 MAX_COPY_LENGTH = "MaxCopyLength"
 LINE_COUNTER = "LineCounter"
+TOTAL_TYPED_COUNTER = "TotalTypedCounter"
+DELETION_COUNTER = "DeletionCounter"
+DELETION_LENGTH_COUNTER = "DeletionLengthCounter"

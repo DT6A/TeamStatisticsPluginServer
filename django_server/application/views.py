@@ -800,7 +800,7 @@ def create_substring_metric(request):
         if form.is_valid():
             metric = form.save()
 
-            metric.name = 'WordCounter(' + metric.substring + ')'
+            metric.name = 'SubstringCounter(' + metric.substring + ')'
             metric.save()
 
             messages.success(request, f'Metric was created')
@@ -813,6 +813,38 @@ def create_substring_metric(request):
         form = SubstringCountingMetricForm()
 
     return render(request, 'application/create_with_form.html', {'form': form, 'target': 'substring counting metric'})
+
+
+@login_required
+def create_word_metric(request):
+    """
+    View function for word metric creation
+
+            Parameters:
+                    request: Request to process
+
+            Returns:
+                    Rendered view
+    """
+    if request.method == 'POST':
+        form = WordCountingMetricForm(request.POST)
+
+        if form.is_valid():
+            metric = form.save()
+
+            metric.name = 'WordCounter(' + metric.word + ')'
+            metric.save()
+
+            messages.success(request, f'Metric was created')
+            FeedMessage(sender=metric.name, receiver=request.user,
+                        msg_content=f"You have created \"{metric.word}\" tracking metric",
+                        created_at=timezone.now()) \
+                .save()
+            return redirect('app-contribute')
+    else:
+        form = WordCountingMetricForm()
+
+    return render(request, 'application/create_with_form.html', {'form': form, 'target': 'word counting metric'})
 
 
 @login_required
@@ -871,9 +903,7 @@ def create_copy_metric(request):
                 messages.warning(request, f'Length must be positive')
                 return render(request, 'application/create_with_form.html',
                               {'form': form, 'target': 'copy metric'})
-            print("Before saving")
             metric = form.save()
-            print("After saving")
 
             metric.name = 'SpecificLengthCopyCounter(' + str(metric.substring_length) + ')'
             # metric.string_representation = f"SpecificLengthCopyCounter  {metric.substring_length}"

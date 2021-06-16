@@ -11,6 +11,7 @@ urlpatterns = [
     path('contribute/', contribute, name='app-contribute'),
     path('contribute/create_char_metric/', create_char_metric, name='app-create-char-metric'),
     path('contribute/create_substring_metric/', create_substring_metric, name='app-create-substring-metric'),
+    path('contribute/create_word_metric/', create_word_metric, name='app-create-word-metric'),
     path('contribute/create_paste_metric/', create_paste_metric, name='app-create-paste-metric'),
     path('contribute/create_copy_metric/', create_copy_metric, name='app-create-copy-metric'),
     path('contribute/branch/', create_branch_metric, name='app-create-branch-metric'),
