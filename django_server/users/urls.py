@@ -10,5 +10,5 @@ urlpatterns = [
     path('login/', auth_views.LoginView.as_view(template_name='users/login.html'), name='login'),
     path('logout/', auth_views.LogoutView.as_view(template_name='users/logout.html'), name='logout'),
     path('plugin_get_all_metrics/', views.all_metrics, name='plugin_get_all_metrics'),
-    path('plugin_get_user_metrics/', views.user_metrics, name='plugin_get_all_metrics'),
+    path('plugin_get_user_metrics/', views.user_metrics, name='plugin_get_user_metrics'),
 ]

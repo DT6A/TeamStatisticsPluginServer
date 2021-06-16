@@ -9,7 +9,8 @@ Metric = apps.get_model('users', 'Metric')
 CharCountingMetric = apps.get_model('users', 'CharCountingMetric')
 SubstringCountingMetric = apps.get_model('users', 'SubstringCountingMetric')
 Achievement = apps.get_model('users', 'Achievement')
-SpecificLengthCopyPasteCounter = apps.get_model('users', 'SpecificLengthCopyPasteCounter')
+SpecificLengthPasteCounterMetric = apps.get_model('users', 'SpecificLengthPasteCounterMetric')
+SpecificLengthCopyCounterMetric = apps.get_model('users', 'SpecificLengthPasteCounterMetric')
 SpecificBranchCommitCounterMetric = apps.get_model('users', 'SpecificBranchCommitCounterMetric')
 
 
@@ -31,9 +32,15 @@ class SubstringCountingMetricForm(ModelForm):
         fields = ['substring']
 
 
-class SpecificLengthCopyPasteCounterForm(ModelForm):
+class SpecificLengthCopyCounterMetricForm(ModelForm):
     class Meta:
-        model = SpecificLengthCopyPasteCounter
+        model = SpecificLengthCopyCounterMetric
+        fields = ['substring_length']
+
+
+class SpecificLengthPasteCounterMetricForm(ModelForm):
+    class Meta:
+        model = SpecificLengthPasteCounterMetric
         fields = ['substring_length']
 
 
