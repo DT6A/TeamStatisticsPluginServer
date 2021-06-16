@@ -9,6 +9,8 @@ Metric = apps.get_model('users', 'Metric')
 CharCountingMetric = apps.get_model('users', 'CharCountingMetric')
 SubstringCountingMetric = apps.get_model('users', 'SubstringCountingMetric')
 Achievement = apps.get_model('users', 'Achievement')
+SpecificLengthCopyPasteCounter = apps.get_model('users', 'SpecificLengthCopyPasteCounter')
+SpecificBranchCommitCounterMetric = apps.get_model('users', 'SpecificBranchCommitCounterMetric')
 
 
 class TeamForm(ModelForm):
@@ -27,6 +29,18 @@ class SubstringCountingMetricForm(ModelForm):
     class Meta:
         model = SubstringCountingMetric
         fields = ['substring']
+
+
+class SpecificLengthCopyPasteCounterForm(ModelForm):
+    class Meta:
+        model = SpecificLengthCopyPasteCounter
+        fields = ['substring_length']
+
+
+class SpecificBranchCommitCounterMetricForm(ModelForm):
+    class Meta:
+        model = SpecificBranchCommitCounterMetric
+        fields = ['branch_name']
 
 
 class AchievementForm(ModelForm):

@@ -1,0 +1,26 @@
+{% extends "application/base.html" %}
+{% block content %}
+    <article class="media content-section">
+        <div class="media-body">
+            <h2>{{ object.name }}</h2>
+            Obtained by: {{object.percent_of_users}}% of users
+            <br>
+            {% if is_obtained %}
+                Obtained by you
+            {% endif %}
+            {% if not is_tracked %}
+            <div>
+                <form method="POST">
+                    {% csrf_token %}
+                    <input type="hidden" name="target_achievement_id" value="{{ object.id }}" />
+                    <button class="btn btn-outline-info" type="submit">Start Tracking</button>
+                </form>
+            </div>
+            {% endif %}
+            <h3>Requirements:</h3>
+            {% for name, goal in metric_to_goal.items %}
+                <p>{{name}}: {{goal}}</p>
+            {% endfor %}
+        </div>
+    </article>
+{% endblock content %}
