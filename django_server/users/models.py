@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from django.contrib.auth.models import User
 from django.contrib.postgres.fields.jsonb import KeyTextTransform
 from django.core.management.utils import get_random_secret_key
+from django.core.validators import MinLengthValidator
 from django.db import models
 from django.db.models import Sum
 from django.db.models.functions import Cast
@@ -95,6 +96,10 @@ class Metric(models.Model):
             return str(self.charcountingmetric)
         elif hasattr(self, 'substringcountingmetric'):
             return str(self.substringcountingmetric)
+        elif hasattr(self, 'specificlengthcopypastecounter'):
+            return str(self.specificlengthcopypastecounter)
+        elif hasattr(self, 'specificbranchcommitcountermetric'):
+            return str(self.specificbranchcommitcountermetric)
         return self.string_representation
 
 
@@ -188,7 +193,7 @@ class SubstringCountingMetric(Metric):
     substring :
         Substring to count
     """
-    substring = models.CharField(max_length=100, unique=True, blank=False)
+    substring = models.CharField(max_length=80, unique=True, blank=False, validators=[MinLengthValidator(2)])
 
     def __str__(self):
         return 'Number of \"' + str(self.substring) + '\" substrings'
@@ -203,7 +208,7 @@ class SpecificBranchCommitCounterMetric(Metric):
     branch_name :
         Name of tracked branch
     """
-    branch_name = models.CharField(max_length=100, unique=True, blank=False)
+    branch_name = models.CharField(max_length=80, unique=True, blank=False)
 
     def __str__(self):
         return 'Number of commit to \"' + str(self.branch_name) + '\" branch'
@@ -218,7 +223,7 @@ class SpecificLengthCopyPasteCounter(Metric):
     substring_length :
         Specific length of substring
     """
-    substring_length = models.IntegerField(unique=True, blank=False)
+    substring_length = models.IntegerField(blank=False)
 
     def __str__(self):
         if self.string_representation == SPECIFIC_LENGTH_PASTE_COUNTER:
@@ -302,3 +307,7 @@ class Achievement(models.Model):
 
     def __str__(self):
         return self.name
+
+    @property
+    def percent_of_users(self):
+        return len(self.completed_users.all()) / len(User.objects.all()) * 100

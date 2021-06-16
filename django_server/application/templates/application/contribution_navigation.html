@@ -1,0 +1,12 @@
+{% extends "application/base.html" %}
+{% load crispy_forms_tags %}
+{% block content %}
+     <div class="content-section">
+         <a class="nav-item nav-link" href="{% url 'app-create-char-metric' %}">Create new char counting metric</a>
+         <a class="nav-item nav-link" href="{% url 'app-create-substring-metric' %}">Create new substring counting metric</a>
+         <a class="nav-item nav-link" href="{% url 'app-create-branch-metric' %}">Create branch commits counting metric</a>
+         <a class="nav-item nav-link" href="{% url 'app-create-copy-metric' %}">Create copy length metric</a>
+         <a class="nav-item nav-link" href="{% url 'app-create-paste-metric' %}">Create paste length metric</a>
+         <a class="nav-item nav-link" href="{% url 'app-create-achievement' %}">Create new achievement</a>
+     </div>
+{% endblock content %}
