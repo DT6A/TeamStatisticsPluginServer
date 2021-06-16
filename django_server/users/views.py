@@ -1,4 +1,7 @@
 import json
+import pytz
+
+utc=pytz.UTC
 
 import dateutil.parser
 from django.contrib import messages
@@ -37,6 +40,49 @@ def register(request):
                                                    })
 
 
+def cut_interval(qs, now, delta):
+    return qs.filter(time_to__lte=now - delta)
+
+
+def aggregate_interval(stats, user):
+    min_date = utc.localize(datetime.now())
+    max_date = utc.localize(datetime(1971, 1, 1))
+    metrics_aggregated = {}
+    for q in stats:
+        min_date = min(min_date, q.time_from)
+        max_date = max(max_date, q.time_to)
+        for metric_name in q.metrics:
+            #print(metric_name)
+            if metric_name not in metrics_aggregated:
+                metrics_aggregated[metric_name] = 0
+            metrics_aggregated[metric_name] += q.metrics[metric_name]
+    us = UserStat(user=user, metrics=metrics_aggregated, time_from=min_date, time_to=max_date)
+    us.save()
+    return us
+
+
+def aggregate_notes(user, threshold=100000):
+    user_stats = UserStat.objects.filter(user=user)
+    if len(user_stats) <= threshold:
+        return
+
+    now = datetime.now()
+    intervals = []
+
+    for delta in [timedelta(days=365), timedelta(days=30), timedelta(days=7), timedelta(days=1)]:
+        interval = cut_interval(user_stats, now, delta)
+        user_stats = user_stats.exclude(pk__in=interval.values_list('id', flat=True))
+        intervals.append(interval)
+
+    new_us = []
+    for interval in intervals:
+        new_us.append(aggregate_interval(interval, user).id)
+    new_us_qs = UserStat.objects.filter(pk__in=new_us)
+    user_stats |= new_us_qs
+    for us in UserStat.objects.all().exclude(pk__in=user_stats):
+        UserStat.objects.filter(id=us.id).delete()
+
+
 @csrf_exempt
 def receive_data(request):
     if request.method == 'GET':
@@ -58,6 +104,8 @@ def receive_data(request):
 
     stat.metrics = data
     stat.save()
+
+    aggregate_notes(user)
     return HttpResponse("Ok")
 
 
@@ -165,5 +213,5 @@ def user_metrics(request):
     ]
     return_dict[SPECIFIC_LENGTH_COPY_COUNTER] = length_copy_values
     return_dict[SPECIFIC_LENGTH_PASTE_COUNTER] = length_paste_values
-    print(return_dict)
+    #print(return_dict)
     return JsonResponse(return_dict)
