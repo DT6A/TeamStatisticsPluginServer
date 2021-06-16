@@ -965,6 +965,7 @@ class CreateAchievementView(View):
                 achieve = form.save()
                 achieve.assigned_users.add(request.user)
                 achieve.metric_to_goal = d
+                achieve.save()
 
                 messages.success(request, f'Achievement was created')
                 FeedMessage(sender=achieve.name, receiver=request.user,
