@@ -225,6 +225,11 @@ class UserDetailView(DetailView):
     context_object_name = 'object'
     template_name = 'application/profile_detail.html'
 
+    @staticmethod
+    def add_finished_achievements(user, context):
+        context['finished_achievements'] = user.finished_achievements.all()
+        return context
+
     def get_context_data(self, **kwargs):
         """
         Fills request context
@@ -242,6 +247,7 @@ class UserDetailView(DetailView):
             Metric.objects.get(name=context['default_metric']))
         context['achievement_l'] = Achievement.objects.all().filter(
             id__in=self.request.user.unfinished_achievements.all())
+        context = self.add_finished_achievements(self.request.user, context)
         return context
 
     @staticmethod
@@ -302,7 +308,7 @@ class UserDetailView(DetailView):
         context['achievement_l'] = Achievement.objects.all().filter(id__in=request.user.unfinished_achievements.all())
         context['default_metric_text'] = 'Lines of code' if context['default_metric'] == 'lines' else str(
             Metric.objects.get(name=context['default_metric']))
-
+        context = self.add_finished_achievements(self.request.user, context)
         return render(request, 'application/profile_detail.html', context)
 
 
@@ -961,6 +967,7 @@ class CreateAchievementView(View):
                 achieve = form.save()
                 achieve.assigned_users.add(request.user)
                 achieve.metric_to_goal = d
+                achieve.save()
 
                 messages.success(request, f'Achievement was created')
                 FeedMessage(sender=achieve.name, receiver=request.user,

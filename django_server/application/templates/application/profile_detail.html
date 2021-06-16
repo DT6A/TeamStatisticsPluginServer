@@ -74,8 +74,17 @@
                 <input type="hidden" name="query" value="update_achievements" />
                 <input type="hidden" name="user_id" value="{{ object.id }}" />
                 <button class="btn btn-outline-success" type="submit">Update achievements</button>
+                <h2> Your achievements </h2>
+                <div>
+                {% for achievement in finished_achievements%}
+                    <a href="{% url 'achievement-detail' achievement.id %}">{{achievement}}</a>
+                    <small>Obtained by {{achievement.percent_of_users}}% of users</small>
+                    <br>
+                {% endfor %}
+                </div>
             </form>
           {% endif %}
+          <br>
       </div>
     </article>
     <p>

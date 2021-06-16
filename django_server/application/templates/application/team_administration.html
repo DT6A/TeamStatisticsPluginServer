@@ -5,7 +5,20 @@
       <div class="media-body">
 
         <h2 class="article-title">{{ object.name }} </h2>
-        Team key for invitation: {{ object.invite_key }}
+
+        Team key for invitation: <a onclick="copy('{{ object.invite_key }}');" href="#" style="margin-Top:-6px"> {{ object.invite_key }}</a>
+        <script>
+              function copy(text) {
+                var input = document.createElement('input');
+                input.setAttribute('value', text);
+                document.body.appendChild(input);
+                input.select();
+                var result = document.execCommand('copy');
+                document.body.removeChild(input);
+                return result;
+             }
+        </script>
+
         <div>
             <form method="POST">
                 {% csrf_token %}
