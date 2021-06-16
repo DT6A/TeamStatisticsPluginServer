@@ -5,6 +5,7 @@ from django.test import TestCase
 from django.test import Client
 
 from .models import *
+from .views import aggregate_notes
 
 
 class DataSendingTest(TestCase):
@@ -97,6 +98,64 @@ class DataSendingTest(TestCase):
 
         self.assertEqual(n_sends, len(UserStat.objects.all()))
 
+    def test_aggregating(self):
+        user = User.objects.create_user(username='testuser1', password='12345')
+        c = Client()
+
+        def make_query_with_date(f, t):
+            self.assertEqual(c.post('/post/', json.dumps({'token': user.useruniquetoken.token,
+                                                          'time_from': f,
+                                                          'time_to': t,
+                                                          'metric': 1
+                                                          }),
+                                    content_type="application/json").status_code, 200)
+
+        # > year
+        make_query_with_date((datetime.today() - timedelta(days=3000)).isoformat(),
+                             (datetime.today() - timedelta(days=3000)).isoformat())
+        make_query_with_date((datetime.today() - timedelta(days=1000)).isoformat(),
+                             (datetime.today() - timedelta(days=1000)).isoformat())
+        make_query_with_date((datetime.today() - timedelta(days=700)).isoformat(),
+                             (datetime.today() - timedelta(days=700)).isoformat())
+        make_query_with_date((datetime.today() - timedelta(days=400)).isoformat(),
+                             (datetime.today() - timedelta(days=400)).isoformat())
+        # > month
+        make_query_with_date((datetime.today() - timedelta(days=40)).isoformat(),
+                             (datetime.today() - timedelta(days=40)).isoformat())
+        make_query_with_date((datetime.today() - timedelta(days=31)).isoformat(),
+                             (datetime.today() - timedelta(days=31)).isoformat())
+        make_query_with_date((datetime.today() - timedelta(days=70)).isoformat(),
+                             (datetime.today() - timedelta(days=70)).isoformat())
+        # > week
+        make_query_with_date((datetime.today() - timedelta(days=29)).isoformat(),
+                             (datetime.today() - timedelta(days=29)).isoformat())
+        make_query_with_date((datetime.today() - timedelta(days=8)).isoformat(),
+                             (datetime.today() - timedelta(days=8)).isoformat())
+        # > day
+        make_query_with_date((datetime.today() - timedelta(days=6)).isoformat(),
+                             (datetime.today() - timedelta(days=6)).isoformat())
+        make_query_with_date((datetime.today() - timedelta(days=2)).isoformat(),
+                             (datetime.today() - timedelta(days=2)).isoformat())
+        # < day
+        make_query_with_date(datetime.today().isoformat(), datetime.today().isoformat())
+        make_query_with_date(datetime.today().isoformat(), datetime.today().isoformat())
+        make_query_with_date(datetime.today().isoformat(), datetime.today().isoformat())
+        make_query_with_date(datetime.today().isoformat(), datetime.today().isoformat())
+        make_query_with_date(datetime.today().isoformat(), datetime.today().isoformat())
+
+        aggregate_notes(user, 10)
+        self.assertEqual(len(UserStat.objects.all()), 9)
+        self.assertEqual(aggregate_metric_all_time(user, 'metric'), 16)
+
+        def aggregate_dt(delta):
+            s = extract_metric(UserStat.objects.filter(user=user, time_from__gte=datetime.now() - delta), 'metric')
+            return s if s else 0
+
+        self.assertEqual(aggregate_dt(timedelta(days=1)), 5)
+        self.assertEqual(aggregate_dt(timedelta(days=7)), 7)
+        self.assertEqual(aggregate_dt(timedelta(days=30)), 9)
+        self.assertEqual(aggregate_dt(timedelta(days=365)), 12)
+
 
 class PluginLoginTest(TestCase):
     def test_get(self):
@@ -153,8 +212,8 @@ class MetricsReceiving(TestCase):
 
         response = c.get('/plugin_get_all_metrics/')
         j_response = response.json()
-        self.assertEquals([], j_response['CHAR_COUNTING'])
-        self.assertEquals([], j_response['SUBSTRING_COUNTING'])
+        self.assertEquals([], j_response[CHAR_COUNTER])
+        self.assertEquals([], j_response[WORD_COUNTER])
 
     def test_some_metrics_exist(self):
         CharCountingMetric(name='1', char='1').save()
@@ -167,5 +226,5 @@ class MetricsReceiving(TestCase):
         response = c.get('/plugin_get_all_metrics/')
         j_response = response.json()
 
-        self.assertEquals(['1', '2'], j_response['CHAR_COUNTING'])
-        self.assertEquals(['str1', 'str2'], j_response['SUBSTRING_COUNTING'])
+        self.assertEquals(['1', '2'], j_response[CHAR_COUNTER])
+        self.assertEquals(['str1', 'str2'], j_response[WORD_COUNTER])
