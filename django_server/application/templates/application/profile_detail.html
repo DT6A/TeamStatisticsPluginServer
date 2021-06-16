@@ -76,6 +76,15 @@
                 <button class="btn btn-outline-success" type="submit">Update achievements</button>
             </form>
           {% endif %}
+          <br>
+          <h2> Your achievements </h2>
+          <div>
+            {% for achievement in finished_achievements%}
+                <a href="{% url 'achievement-detail' achievement.id %}">{{achievement}}</a>
+                <small>Obtained by {{achievement.percent_of_users}}% of users</small>
+                <br>
+            {% endfor %}
+          </div>
       </div>
     </article>
     <p>

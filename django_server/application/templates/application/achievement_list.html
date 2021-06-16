@@ -6,7 +6,7 @@
             <div>
                 {% for achievement in achievements %}
                 <a href="{% url 'achievement-detail' achievement.id %}">{{achievement}}</a>
-                <small>Obtained by {{achievement.percent_of_users}} of users</small>
+                <small>Obtained by {{achievement.percent_of_users}}% of users</small>
                     <br>
                 {% endfor %}
             </div>
