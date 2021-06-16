@@ -762,7 +762,7 @@ def create_char_metric(request):
         if form.is_valid():
             metric = form.save()
 
-            metric.name = metric.char + '_CHAR_METRIC'
+            metric.name = 'CharCounter(' + metric.char + ')'
             metric.save()
 
             messages.success(request, f'Metric was created')
@@ -794,7 +794,7 @@ def create_substring_metric(request):
         if form.is_valid():
             metric = form.save()
 
-            metric.name = '_'.join(metric.substring.split()) + '_SUBSTR_METRIC'
+            metric.name = 'WordCounter(' + metric.substring + ')'
             metric.save()
 
             messages.success(request, f'Metric was created')
@@ -830,7 +830,7 @@ def create_paste_metric(request):
                               {'form': form, 'target': 'paste metric'})
             metric = form.save()
 
-            metric.name = str(metric.substring_length) + '_PASTE_METRIC'
+            metric.name = 'SpecificLengthPasteCounter(' + str(metric.substring_length) + ')'
             # metric.string_representation = "SpecificLengthPasteCounter"
             metric.save()
 
@@ -869,7 +869,7 @@ def create_copy_metric(request):
             metric = form.save()
             print("After saving")
 
-            metric.name = str(metric.substring_length) + '_COPY_METRIC'
+            metric.name = 'SpecificLengthCopyCounter(' + str(metric.substring_length) + ')'
             # metric.string_representation = f"SpecificLengthCopyCounter  {metric.substring_length}"
             metric.save()
 
