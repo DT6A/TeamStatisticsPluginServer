@@ -1,10 +1,10 @@
-# Server for "Intelij Idea team statistics plugin"
+# Server for "IntelliJ IDEA team statistics plugin"
 ## Description
-This repository contains Django application for "Intelij Idea team statistics plugin" project. 
+This repository contains Django application for "IntelliJ IDEA team statistics plugin" project. 
 
 The goal is to create plugin and web-service which allow tracking of different metrics (with possibility to create some custom).
 
-Plugin source code can be found in [https://github.com/DT6A/TeamStatisticsPlugin](https://github.com/DT6A/TeamStatisticsPlugin) repository.
+Plugin source code can be found in [plugin repository](https://github.com/DT6A/TeamStatisticsPlugin).
 
 ## Requirements
 1. Python3
