@@ -289,6 +289,7 @@ class UserDetailView(DetailView):
         if interval == 'all':
             context['metric_value'] = aggregate_metric_all_time(user, metric)
         else:
+            print(metric)
             context['metric_value'] = aggregate_metric_within_delta(user, metric, timedelta(days=int(interval)))
 
         query = request.POST.get('query', None)
@@ -943,7 +944,7 @@ def create_branch_metric(request):
         if form.is_valid():
             metric = form.save()
 
-            metric.name = '_'.join(metric.branch_name.split()) + '_BRANCH_METRIC'
+            metric.name = "SpecificBranchCommitCounter(" + metric.branch_name + ')'
             metric.save()
 
             messages.success(request, f'Metric was created')
