@@ -173,6 +173,9 @@ def user_metrics(request):
         SubstringCountingMetric.objects.filter(name__in=metrics)
     ] + [
         m.name for m in
+        WordCountingMetric.objects.filter(name__in=metrics)
+    ] + [
+        m.name for m in
         SpecificBranchCommitCounterMetric.objects.filter(name__in=metrics)
     ] + [
         m.name for m in
@@ -189,6 +192,10 @@ def user_metrics(request):
     return_dict = {}
     for string_representation in non_param_metric:
         return_dict[string_representation] = string_representation
+    return_dict[WORD_COUNTER] = [
+        m.word for m in
+        WordCountingMetric.objects.filter(name__in=metrics)
+    ]
     return_dict[SPECIFIC_LENGTH_COPY_COUNTER] = [
         m.substring_length for m in
         SpecificLengthCopyCounterMetric.objects.filter(name__in=metrics)
@@ -201,7 +208,7 @@ def user_metrics(request):
         m.char for m in
         CharCountingMetric.objects.filter(name__in=metrics)
     ]
-    return_dict[WORD_COUNTER] = [
+    return_dict[SUBSTRING_COUNTER] = [
         m.substring for m in
         SubstringCountingMetric.objects.filter(name__in=metrics)
     ]
@@ -209,5 +216,5 @@ def user_metrics(request):
         m.branch_name for m in
         SpecificBranchCommitCounterMetric.objects.filter(name__in=metrics)
     ]
-
+    print(return_dict)
     return JsonResponse(return_dict)
