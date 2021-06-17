@@ -943,7 +943,7 @@ def create_branch_metric(request):
         if form.is_valid():
             metric = form.save()
 
-            metric.name = '_'.join(metric.branch_name.split()) + '_BRANCH_METRIC'
+            metric.name = "SpecificBranchCommitCounter(" + metric.branch_name + ')'
             metric.save()
 
             messages.success(request, f'Metric was created')

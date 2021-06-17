@@ -186,7 +186,7 @@ def user_metrics(request):
     ]
 
     non_param_metric = [
-        m.string_representation for m in
+        m.name for m in
         Metric.objects.exclude(name__in=param_metric).filter(name__in=metrics)
     ]
     return_dict = {}
