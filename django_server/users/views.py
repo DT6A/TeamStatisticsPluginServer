@@ -193,7 +193,7 @@ def user_metrics(request):
     for string_representation in non_param_metric:
         return_dict[string_representation] = string_representation
     return_dict[WORD_COUNTER] = [
-        m.substring for m in
+        m.word for m in
         WordCountingMetric.objects.filter(name__in=metrics)
     ]
     return_dict[SPECIFIC_LENGTH_COPY_COUNTER] = [
@@ -216,5 +216,5 @@ def user_metrics(request):
         m.branch_name for m in
         SpecificBranchCommitCounterMetric.objects.filter(name__in=metrics)
     ]
-
+    print(return_dict)
     return JsonResponse(return_dict)

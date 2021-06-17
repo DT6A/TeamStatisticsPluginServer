@@ -100,6 +100,8 @@ class Metric(models.Model):
             return str(self.specificlengthcopypastecounter)
         elif hasattr(self, 'specificbranchcommitcountermetric'):
             return str(self.specificbranchcommitcountermetric)
+        elif hasattr(self, 'wordcountingmetric'):
+            return str(self.wordcountingmetric)
         return self.string_representation
 
 
