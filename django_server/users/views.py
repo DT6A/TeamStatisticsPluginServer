@@ -55,7 +55,7 @@ def aggregate_interval(stats, user):
             #print(metric_name)
             if metric_name not in metrics_aggregated:
                 metrics_aggregated[metric_name] = 0
-            metrics_aggregated[metric_name] += q.metrics[metric_name]
+            metrics_aggregated[metric_name] += int(q.metrics[metric_name])
     us = UserStat(user=user, metrics=metrics_aggregated, time_from=min_date, time_to=max_date)
     us.save()
     return us
