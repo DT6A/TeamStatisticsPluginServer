@@ -289,7 +289,6 @@ class UserDetailView(DetailView):
         if interval == 'all':
             context['metric_value'] = aggregate_metric_all_time(user, metric)
         else:
-            print(metric)
             context['metric_value'] = aggregate_metric_within_delta(user, metric, timedelta(days=int(interval)))
 
         query = request.POST.get('query', None)
