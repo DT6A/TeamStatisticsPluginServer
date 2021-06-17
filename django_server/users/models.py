@@ -29,8 +29,8 @@ class UserStat(models.Model):
         User about whom records
     """
     metrics = models.JSONField(default=dict)
-    time_from = models.DateTimeField(default=timezone.now())
-    time_to = models.DateTimeField(default=timezone.now())
+    time_from = models.DateTimeField(default=timezone.now)
+    time_to = models.DateTimeField(default=timezone.now)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
 
 
@@ -302,7 +302,7 @@ class FeedMessage(models.Model):
     sender = models.CharField(max_length=100, blank=False)
     receiver = models.ForeignKey(User, related_name="receiver", on_delete=models.CASCADE)
     msg_content = models.CharField(max_length=1000, blank=False)
-    created_at = models.DateTimeField(default=timezone.now())
+    created_at = models.DateTimeField(default=timezone.now)
 
 
 class Achievement(models.Model):
