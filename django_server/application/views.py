@@ -669,6 +669,11 @@ def join_team(request):
                             created_at=timezone.now()) \
                     .save()
             messages.success(request, f'You joined to \"{team.name}\" team')
+
+            for tm in team.get_team_metrics():
+                if tm != 'lines':
+                    request.user.profile.add_metric(tm)
+
             return redirect('app-teams')
     else:
         form = TeamJoinForm()
